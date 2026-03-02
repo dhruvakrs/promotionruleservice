@@ -1,0 +1,8 @@
+rule "Valid Test Rule"
+  salience 10
+  when
+    $tx : Transaction()
+    exists InvoiceItem(categoryCode == "ELEC")
+  then
+    results.add(io.promoengine.engine.model.PromotionResult.builder().promotionId("VALID-TEST").promotionType(0).description("Valid test rule").discountAmount(new java.math.BigDecimal("5.00")).timesApplied(1.0).build());
+end

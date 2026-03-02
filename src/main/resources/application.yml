@@ -1,0 +1,65 @@
+server:
+  port: 8080
+  servlet:
+    context-path: ${PE_CONTEXT_PATH:/promotionengine/api}
+
+spring:
+  application:
+    name: promoengine-service
+  datasource:
+    url: ${PE_DB_URL:jdbc:oracle:thin:@localhost:1521/xe}
+    username: ${PE_DB_USERNAME:promoengine}
+    password: ${PE_DB_PASSWORD:promoengine}
+    driver-class-name: ${PE_DB_DRIVER:oracle.jdbc.OracleDriver}
+    hikari:
+      minimum-idle: ${PE_DB_MIN_IDLE:2}
+      maximum-pool-size: ${PE_DB_MAX_POOL:10}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  elasticsearch:
+    uris: ${PE_OPENSEARCH_URI:http://localhost:9200}
+    username: ${PE_OPENSEARCH_USERNAME:}
+    password: ${PE_OPENSEARCH_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+promoengine:
+  engine:
+    debug-level: ${PE_ENGINE_DEBUG:0}
+    nbr-decimals: ${PE_ENGINE_DECIMALS:3}
+  rules:
+    s3-bucket: ${PE_S3_BUCKET:}
+    s3-key: ${PE_S3_KEY:ruleset/ruleset.xml}
+    expiry-cron: ${PE_EXPIRY_CRON:0 0 2 * * *}
+    compile-timeout-ms: ${PE_RULE_COMPILE_TIMEOUT_MS:10000}
+  tenancy:
+    default-tenant-id: ${PE_DEFAULT_TENANT:default}
+    enabled: ${PE_MULTI_TENANT:true}
+  security:
+    api-key: ${PE_API_KEY:change-me}
+    header-name: X-API-Key
+    tenants:
+      ${PE_API_KEY:change-me}: ${PE_DEFAULT_TENANT:default}
+  s3:
+    region: ${PE_AWS_REGION:ap-southeast-1}
+  data:
+    price-index: ${PE_PRICE_INDEX:promoprice}
+    item-index: ${PE_ITEM_INDEX:promoitem}
+    customer-index: ${PE_CUSTOMER_INDEX:promocustomer}
+
+logging:
+  level:
+    io.promoengine: ${PE_LOG_LEVEL:INFO}

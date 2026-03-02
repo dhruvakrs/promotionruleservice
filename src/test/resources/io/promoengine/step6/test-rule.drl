@@ -1,0 +1,8 @@
+rule "10pct Off Electronics"
+  salience 10
+  when
+    $tx : Transaction()
+    exists InvoiceItem(categoryCode == "ELEC")
+  then
+    results.add(io.promoengine.engine.model.PromotionResult.builder().promotionId("ELEC10PCT").promotionType(0).description("10pct off electronics").discountAmount(new java.math.BigDecimal("10.00")).timesApplied(1.0).build());
+end
