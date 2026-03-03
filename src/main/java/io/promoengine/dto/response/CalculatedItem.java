@@ -15,6 +15,7 @@ import java.util.List;
 public class CalculatedItem {
     private String sku;
     private int quantity;
+    private String categoryCode;
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
     private BigDecimal standardDiscount;

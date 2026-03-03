@@ -97,6 +97,7 @@ public class PromotionResponseMapper {
         return CalculatedItem.builder()
                 .sku(item.getSku())
                 .quantity(item.getQuantity())
+                .categoryCode(item.getCategoryCode())
                 .unitPrice(unitPrice)
                 .subtotal(subtotal)
                 .standardDiscount(standardDiscount.setScale(SCALE, ROUNDING))
