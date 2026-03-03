@@ -3,6 +3,9 @@ package io.promoengine.enrichment.price;
 import io.promoengine.enrichment.PriceData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -12,8 +15,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Primary
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(ElasticsearchOperations.class)
 public class OpenSearchPriceRepository implements PriceRepository {
 
     private static final String SENTINEL_STORE = "999999";

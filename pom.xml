@@ -19,7 +19,7 @@
     <description>PromoEngine — Cloud-native promotion calculation engine for retail SaaS</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <drools.version>8.44.0.Final</drools.version>
         <aws.sdk.version>2.21.42</aws.sdk.version>
         <springdoc.version>2.3.0</springdoc.version>
@@ -133,6 +133,14 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- H2 — local dev profile only (in-memory DB instead of Oracle) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>com.intuit.karate</groupId>
@@ -165,8 +173,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

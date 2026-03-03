@@ -16,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -23,12 +24,25 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
+    private static final List<String> PUBLIC_PATH_PREFIXES = List.of(
+            "/actuator/", "/actuator",
+            "/swagger-ui", "/v3/api-docs", "/webjars"
+    );
+
     private final TenantResolver tenantResolver;
     private final PromoEngineProperties properties;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        // Allow public paths through without an API key
+        String path = request.getServletPath();
+        boolean isPublic = PUBLIC_PATH_PREFIXES.stream().anyMatch(path::startsWith);
+        if (isPublic) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String headerName = properties.getSecurity().getHeaderName();
         if (headerName == null) headerName = "X-API-Key";
         String apiKey = request.getHeader(headerName);

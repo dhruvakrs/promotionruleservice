@@ -32,8 +32,16 @@ public class EnrichmentService {
                 .collect(Collectors.toList());
 
         try {
-            var pricesFuture = CompletableFuture.supplyAsync(() ->
-                    priceRepository.findPrices(skus, request.getStoreId()));
+            // Only look up skus that don't already have a price provided in the request
+            List<String> skusNeedingLookup = request.getItems().stream()
+                    .filter(i -> i.getUnitPrice() == null)
+                    .map(EnrichRequest.Item::getSku)
+                    .collect(Collectors.toList());
+
+            // Run lookups in parallel (skip if nothing to look up)
+            var pricesFuture = skusNeedingLookup.isEmpty()
+                    ? CompletableFuture.completedFuture(Map.<String, PriceData>of())
+                    : CompletableFuture.supplyAsync(() -> priceRepository.findPrices(skusNeedingLookup, request.getStoreId()));
             var propertiesFuture = CompletableFuture.supplyAsync(() ->
                     itemRepository.findProperties(skus));
             var customerFuture = CompletableFuture.supplyAsync(() ->
@@ -41,7 +49,7 @@ public class EnrichmentService {
 
             CompletableFuture.allOf(pricesFuture, propertiesFuture, customerFuture).join();
 
-            Map<String, PriceData> prices = pricesFuture.join();
+            Map<String, PriceData> lookedUpPrices = pricesFuture.join();
             Map<String, ItemPropertyData> properties = propertiesFuture.join();
             Optional<CustomerData> customer = customerFuture.join();
 
@@ -49,25 +57,36 @@ public class EnrichmentService {
             List<String> skippedItems = new ArrayList<>();
 
             for (EnrichRequest.Item item : request.getItems()) {
-                if (prices.containsKey(item.getSku())) {
-                    PriceData price = prices.get(item.getSku());
-                    ItemPropertyData props = properties.get(item.getSku());
-                    BigDecimal lineAmount = price.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-                    EnrichedItem enriched = EnrichedItem.builder()
-                            .sku(item.getSku())
-                            .storeCode(request.getStoreId())
-                            .categoryCode(props != null ? props.getCategoryCode() : null)
-                            .subcategoryCode(props != null ? props.getSubcategoryCode() : null)
-                            .departmentCode(props != null ? props.getDepartmentCode() : null)
-                            .foodItem(props != null && props.isFoodItem())
-                            .unitPrice(price.getUnitPrice())
-                            .lineAmount(lineAmount)
-                            .quantity(item.getQuantity())
-                            .build();
-                    enrichedItems.add(enriched);
-                } else {
+                // Resolve unit price: use request-supplied price first, fall back to lookup
+                BigDecimal unitPrice = item.getUnitPrice() != null
+                        ? item.getUnitPrice()
+                        : (lookedUpPrices.containsKey(item.getSku()) ? lookedUpPrices.get(item.getSku()).getUnitPrice() : null);
+
+                if (unitPrice == null) {
+                    // No price from request or lookup — skip this item
                     skippedItems.add(item.getSku());
+                    continue;
                 }
+
+                ItemPropertyData props = properties.get(item.getSku());
+                // Use request-supplied categoryCode if provided, otherwise from lookup
+                String categoryCode = item.getCategoryCode() != null
+                        ? item.getCategoryCode()
+                        : (props != null ? props.getCategoryCode() : null);
+
+                BigDecimal lineAmount = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+                EnrichedItem enriched = EnrichedItem.builder()
+                        .sku(item.getSku())
+                        .storeCode(request.getStoreId())
+                        .categoryCode(categoryCode)
+                        .subcategoryCode(props != null ? props.getSubcategoryCode() : null)
+                        .departmentCode(props != null ? props.getDepartmentCode() : null)
+                        .foodItem(props != null && props.isFoodItem())
+                        .unitPrice(unitPrice)
+                        .lineAmount(lineAmount)
+                        .quantity(item.getQuantity())
+                        .build();
+                enrichedItems.add(enriched);
             }
 
             return EnrichedTransaction.builder()
@@ -106,10 +125,19 @@ public class EnrichmentService {
         public static class Item {
             private String sku;
             private int quantity;
+            private java.math.BigDecimal unitPrice;   // null = look up; non-null = use as-is
+            private String categoryCode;               // null = look up; non-null = use as-is
+
             public Item() {}
             public Item(String sku, int quantity) { this.sku = sku; this.quantity = quantity; }
+            public Item(String sku, int quantity, java.math.BigDecimal unitPrice, String categoryCode) {
+                this.sku = sku; this.quantity = quantity;
+                this.unitPrice = unitPrice; this.categoryCode = categoryCode;
+            }
             public String getSku() { return sku; }
             public int getQuantity() { return quantity; }
+            public java.math.BigDecimal getUnitPrice() { return unitPrice; }
+            public String getCategoryCode() { return categoryCode; }
         }
     }
 }

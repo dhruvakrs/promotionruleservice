@@ -45,7 +45,7 @@ public class PromotionService {
 
     private EnrichmentService.EnrichRequest buildEnrichRequest(CalculateRequest req) {
         List<EnrichmentService.EnrichRequest.Item> items = req.getItems().stream()
-                .map(i -> new EnrichmentService.EnrichRequest.Item(i.getSku(), i.getQuantity()))
+                .map(i -> new EnrichmentService.EnrichRequest.Item(i.getSku(), i.getQuantity(), i.getUnitPrice(), i.getCategoryCode()))
                 .collect(Collectors.toList());
         return new EnrichmentService.EnrichRequest(
                 req.getStoreId(), req.getCustomerId(),

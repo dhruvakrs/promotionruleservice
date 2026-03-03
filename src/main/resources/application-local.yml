@@ -1,0 +1,51 @@
+# Local development profile — runs without Oracle or OpenSearch
+# Usage: ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+#        or set SPRING_PROFILES_ACTIVE=local
+# Note: port 8090 used locally (8080 reserved for Jenkins)
+
+server:
+  port: 8090
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:promoengine;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=Oracle
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # Disable OpenSearch for local dev — DatabaseRepository handles all enrichment
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration
+
+management:
+  health:
+    elasticsearch:
+      enabled: false   # No ES locally — exclude from health check
+
+promoengine:
+  security:
+    api-key: local-dev-key
+    tenants:
+      local-dev-key: default
+
+logging:
+  level:
+    io.promoengine: DEBUG
+    org.springframework.security: INFO

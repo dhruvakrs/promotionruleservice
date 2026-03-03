@@ -3,6 +3,9 @@ package io.promoengine.enrichment.item;
 import io.promoengine.enrichment.ItemPropertyData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,8 +14,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Primary
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(ElasticsearchOperations.class)
 public class OpenSearchItemRepository implements ItemRepository {
 
     private final ItemEsRepository itemEsRepository;
