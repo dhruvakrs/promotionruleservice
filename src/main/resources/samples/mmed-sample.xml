@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  MMED (Marketing Markup Language) promotion rule file — sample
+  Upload via: POST /api/v1/rules/import  (multipart/form-data, field name = "file")
+
+  Each <Promotion id="..."> block contains MML key-value pairs.
+  Supported keys:
+    DESCRIPTION:   Human-readable name
+    CONDITION:     CATEGORY=<code> | DEPT=<code>  (leave blank = applies to all items)
+    DISCOUNT:      Numeric discount amount
+    DISCOUNT_TYPE: FIXED (absolute amount) | PCT (percentage — applied as fixed value currently)
+    PRIORITY:      Integer salience for Drools (higher fires first)
+-->
+<Promotions>
+
+    <!-- Rule 1: Flat $10 off everything -->
+    <Promotion id="FLAT10_ALL">
+        DESCRIPTION: Flat $10 off all items
+        CONDITION:
+        DISCOUNT: 10.00
+        DISCOUNT_TYPE: FIXED
+        PRIORITY: 5
+    </Promotion>
+
+    <!-- Rule 2: $15 off Electronics category -->
+    <Promotion id="ELEC_DISC_15">
+        DESCRIPTION: $15 off Electronics
+        CONDITION: CATEGORY=ELEC
+        DISCOUNT: 15.00
+        DISCOUNT_TYPE: FIXED
+        PRIORITY: 10
+    </Promotion>
+
+    <!-- Rule 3: $8 off Food & Beverage category -->
+    <Promotion id="FOOD_DISC_8">
+        DESCRIPTION: $8 off Food items
+        CONDITION: CATEGORY=FOOD
+        DISCOUNT: 8.00
+        DISCOUNT_TYPE: FIXED
+        PRIORITY: 10
+    </Promotion>
+
+    <!-- Rule 4: $20 off Department D01 -->
+    <Promotion id="DEPT_D01_DISC">
+        DESCRIPTION: $20 off Department D01
+        CONDITION: DEPT=D01
+        DISCOUNT: 20.00
+        DISCOUNT_TYPE: FIXED
+        PRIORITY: 8
+    </Promotion>
+
+    <!-- Rule 5: $5 off Household items -->
+    <Promotion id="HOME_DISC_5">
+        DESCRIPTION: $5 off Household items
+        CONDITION: CATEGORY=HOME
+        DISCOUNT: 5.00
+        DISCOUNT_TYPE: FIXED
+        PRIORITY: 7
+    </Promotion>
+
+</Promotions>
