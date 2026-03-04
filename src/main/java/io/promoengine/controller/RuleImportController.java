@@ -1,16 +1,17 @@
 package io.promoengine.controller;
 
+import io.promoengine.dto.request.PrsRuleSet;
 import io.promoengine.rules.MmedXmlParser;
+import io.promoengine.rules.PrsRuleImporter;
 import io.promoengine.rules.PromotionRuleService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,11 +26,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/rules/import")
 @RequiredArgsConstructor
-@Tag(name = "Rule Import", description = "Bulk rule import from MMED XML file")
+@Tag(name = "Rule Import", description = "Bulk rule import — MMED XML (legacy) or PRS JSON (new format)")
 public class RuleImportController {
 
     private final MmedXmlParser mmedXmlParser;
     private final PromotionRuleService promotionRuleService;
+    private final PrsRuleImporter prsRuleImporter;
 
     @PostMapping(consumes = "multipart/form-data")
     @Operation(
@@ -88,8 +90,35 @@ public class RuleImportController {
         }
     }
 
+    @PostMapping("/prs")
+    @Operation(
+        operationId = "14_importRulesFromPrs",
+        summary = "Bulk import promotion rules from PRS JSON",
+        description = "Accepts a PromoRuleSet (PRS) JSON payload. Delta-aware: rules with same " +
+                      "or higher version in DB are skipped. New/updated rules are activated in a " +
+                      "single engine reload. action=delete deactivates existing ACTIVE rules."
+    )
+    public ResponseEntity<Map<String, Object>> importFromPrs(
+            @RequestBody PrsRuleSet ruleSet,
+            HttpServletRequest httpRequest) {
+
+        String tenantId = (String) httpRequest.getAttribute("tenantId");
+        if (tenantId == null) tenantId = "default";
+
+        log.info("PRS import: tenant={}, rules={}", tenantId,
+                ruleSet.getRules() == null ? 0 : ruleSet.getRules().size());
+
+        try {
+            Map<String, Object> result = prsRuleImporter.importPrs(ruleSet, tenantId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("PRS import failed", e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/s3")
-    @Operation(operationId = "14_importRulesFromS3", summary = "Trigger import from configured S3 bucket")
+    @Operation(operationId = "15_importRulesFromS3", summary = "Trigger import from configured S3 bucket")
     public ResponseEntity<Map<String, Object>> importFromS3(HttpServletRequest httpRequest) {
         log.info("S3 import triggered");
         return ResponseEntity.ok(Map.of("imported", 0, "message", "S3 import not configured in this environment"));

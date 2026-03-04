@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ public class PromotionRuleService {
         String ruleBody = (String) req.get("ruleBody");
         String description = (String) req.get("description");
         int priority = req.containsKey("priority") ? ((Number) req.get("priority")).intValue() : 10;
+        int version  = req.containsKey("version")  ? ((Number) req.get("version")).intValue()  : 1;
 
         PromotionRuleEntity entity = PromotionRuleEntity.builder()
                 .promotionId(promotionId)
@@ -42,7 +44,7 @@ public class PromotionRuleService {
                 .description(description)
                 .priority(priority)
                 .status("DRAFT")
-                .version(1)
+                .version(version)
                 .createdAt(LocalDateTime.now())
                 .build();
 
@@ -116,6 +118,89 @@ public class PromotionRuleService {
             return ruleRepository.findByTenantIdAndStatus(tenantId, status, pageable);
         }
         return ruleRepository.findByTenantId(tenantId, pageable);
+    }
+
+    @Transactional
+    public PromotionRuleEntity update(String id, Map<String, Object> req, String tenantId) {
+        PromotionRuleEntity entity = ruleRepository.findById(id)
+                .orElseThrow(() -> new RuleSetException(16, "Rule not found: " + id));
+
+        if (req.containsKey("ruleBody"))   entity.setRuleBody((String) req.get("ruleBody"));
+        if (req.containsKey("description")) entity.setDescription((String) req.get("description"));
+        if (req.containsKey("priority"))    entity.setPriority(((Number) req.get("priority")).intValue());
+        if (req.containsKey("version"))     entity.setVersion(((Number) req.get("version")).intValue());
+
+        entity.setStatus("DRAFT");
+        entity.setUpdatedAt(LocalDateTime.now());
+        PromotionRuleEntity saved = ruleRepository.save(entity);
+        saveHistory(saved, "Updated — reset to DRAFT", tenantId);
+        return saved;
+    }
+
+    /**
+     * Batch-activate rules by ID. Validates each DRL before activating.
+     * Performs a SINGLE engine reload at the end (important for bulk import performance).
+     *
+     * @return map with "activated" and "failed" lists
+     */
+    @Transactional
+    public Map<String, Object> activateBatch(List<String> ids, String tenantId) {
+        List<String> activated = new ArrayList<>();
+        List<String> failed    = new ArrayList<>();
+
+        for (String id : ids) {
+            try {
+                PromotionRuleEntity entity = ruleRepository.findById(id)
+                        .orElseThrow(() -> new RuleSetException(16, "Rule not found: " + id));
+                validateDrl(entity.getRuleBody(), tenantId);
+                entity.setStatus("ACTIVE");
+                entity.setUpdatedAt(LocalDateTime.now());
+                ruleRepository.save(entity);
+                saveHistory(entity, "Activated (batch)", tenantId);
+                activated.add(id);
+            } catch (Exception e) {
+                log.warn("[{}] Batch activate failed for {}: {}", tenantId, id, e.getMessage());
+                failed.add(id + ": " + e.getMessage());
+            }
+        }
+
+        // ONE engine reload for all activated rules
+        List<RuleDefinition> activeRules = ruleLoader.loadActiveRules(tenantId);
+        tenantEngineRegistry.reloadTenant(tenantId, activeRules);
+        log.info("[{}] Batch activate complete: {} activated, {} failed", tenantId, activated.size(), failed.size());
+
+        return Map.of("activated", activated, "failed", failed);
+    }
+
+    /**
+     * Batch-deactivate rules by ID.
+     * Performs a SINGLE engine reload at the end.
+     */
+    @Transactional
+    public Map<String, Object> deactivateBatch(List<String> ids, String tenantId) {
+        List<String> deactivated = new ArrayList<>();
+        List<String> failed      = new ArrayList<>();
+
+        for (String id : ids) {
+            try {
+                PromotionRuleEntity entity = ruleRepository.findById(id)
+                        .orElseThrow(() -> new RuleSetException(16, "Rule not found: " + id));
+                entity.setStatus("INACTIVE");
+                entity.setUpdatedAt(LocalDateTime.now());
+                ruleRepository.save(entity);
+                saveHistory(entity, "Deactivated (batch)", tenantId);
+                deactivated.add(id);
+            } catch (Exception e) {
+                log.warn("[{}] Batch deactivate failed for {}: {}", tenantId, id, e.getMessage());
+                failed.add(id + ": " + e.getMessage());
+            }
+        }
+
+        List<RuleDefinition> activeRules = ruleLoader.loadActiveRules(tenantId);
+        tenantEngineRegistry.reloadTenant(tenantId, activeRules);
+        log.info("[{}] Batch deactivate complete: {} deactivated, {} failed", tenantId, deactivated.size(), failed.size());
+
+        return Map.of("deactivated", deactivated, "failed", failed);
     }
 
     private void validateDrl(String ruleBody, String tenantId) {
