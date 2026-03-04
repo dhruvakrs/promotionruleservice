@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromoEngine — Architecture &amp; Implementation Blueprint</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #1c2230;
+    --border: #30363d; --accent: #58a6ff; --accent2: #3fb950;
+    --accent3: #f0883e; --accent4: #ff7b72; --accent5: #d2a8ff;
+    --text: #c9d1d9; --text-dim: #8b949e; --text-bright: #f0f6fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .toc-sidebar { position: fixed; top: 0; left: 0; width: 240px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 0; z-index: 100; }
+  .toc-sidebar h3 { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 0 16px 8px; }
+  .toc-sidebar a { display: block; padding: 4px 16px; color: var(--text-dim); text-decoration: none; font-size: 12px; border-left: 2px solid transparent; transition: all .15s; }
+  .toc-sidebar a:hover, .toc-sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,.06); }
+  .toc-sidebar .toc-sub { padding-left: 28px; font-size: 11px; }
+  .toc-section { padding: 8px 16px 4px; margin-top: 8px; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  main { margin-left: 240px; padding: 40px 48px; max-width: 1100px; }
+  h1 { font-size: 28px; color: var(--text-bright); margin-bottom: 8px; }
+  h2 { font-size: 20px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 48px 0 20px; scroll-margin-top: 20px; }
+  h3 { font-size: 15px; color: var(--accent5); margin: 28px 0 12px; scroll-margin-top: 20px; }
+  h4 { font-size: 13px; color: var(--accent3); margin: 18px 0 8px; }
+  p { margin-bottom: 12px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  ul li { margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 32px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  .badge-red { background: rgba(255,123,114,.15); color: var(--accent4); border: 1px solid rgba(255,123,114,.3); }
+  .badge-green { background: rgba(63,185,80,.15); color: var(--accent2); border: 1px solid rgba(63,185,80,.3); }
+  .badge-blue { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+  .badge-orange { background: rgba(240,136,62,.15); color: var(--accent3); border: 1px solid rgba(240,136,62,.3); }
+  .badge-purple { background: rgba(210,168,255,.15); color: var(--accent5); border: 1px solid rgba(210,168,255,.3); }
+  pre, code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--accent3); }
+  pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; margin: 12px 0 20px; line-height: 1.5; }
+  pre .comment { color: #6e7681; }
+  pre .keyword { color: var(--accent5); }
+  pre .type { color: var(--accent); }
+  pre .string { color: var(--accent2); }
+  pre .number { color: var(--accent3); }
+  pre .field { color: #79c0ff; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: var(--surface2); color: var(--text-bright); padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .callout { border-left: 3px solid; border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 16px 0; }
+  .callout-info { border-color: var(--accent); background: rgba(88,166,255,.07); }
+  .callout-warn { border-color: var(--accent3); background: rgba(240,136,62,.07); }
+  .callout-danger { border-color: var(--accent4); background: rgba(255,123,114,.07); }
+  .callout-success { border-color: var(--accent2); background: rgba(63,185,80,.07); }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .flow-box { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .flow-node { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 130px; text-align: center; }
+  .flow-node.client { border-color: var(--accent3); }
+  .flow-node.service { border-color: var(--accent); }
+  .flow-node.engine { border-color: var(--accent5); }
+  .flow-node.data { border-color: var(--accent2); }
+  .flow-node .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  .flow-node .name { font-size: 13px; color: var(--text-bright); font-weight: 600; margin-top: 2px; }
+  .arrow { color: var(--text-dim); font-size: 20px; line-height: 46px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card h4 { margin-top: 0; }
+  .card ul { padding-left: 18px; }
+  .card ul li { margin-bottom: 4px; font-size: 12px; color: var(--text); }
+  .step-list { counter-reset: steps; }
+  .step-item { counter-increment: steps; display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .step-body h4 { margin-top: 0; color: var(--text-bright); }
+  .layer-block { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .layer-header { background: var(--surface2); padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+  .layer-body { padding: 12px 14px; }
+  .class-chip { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-family: monospace; color: var(--accent3); margin: 2px; }
+  .vs-table { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .vs-col { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .vs-col h4 { margin-top: 0; font-size: 14px; }
+  .vs-col ul { padding-left: 18px; margin: 0; }
+  .vs-col li { font-size: 12px; margin-bottom: 6px; }
+  .tag-removed { color: var(--accent4); }
+  .tag-kept { color: var(--accent2); }
+  .tag-new { color: var(--accent5); }
+  hr.section-sep { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .pkg-tree { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; line-height: 1.8; }
+  .pkg-tree .d { color: var(--accent); }
+  .pkg-tree .f { color: var(--text-dim); }
+  .pkg-tree .new { color: var(--accent5); }
+  .pkg-tree .note { color: #6e7681; }
+  .env-table td:first-child { font-family: monospace; color: var(--accent3); }
+  .promo-type-row td:first-child { font-family: monospace; font-weight: 700; color: var(--accent5); }
+</style>
+</head>
+<body>
+
+<nav class="toc-sidebar">
+  <h3>PromoEngine</h3>
+  <div class="toc-section">Overview</div>
+  <a href="#overview">1. What Was Built</a>
+  <a href="#transformation">2. Transformation</a>
+  <a href="#decisions">3. Architectural Decisions</a>
+  <div class="toc-section">Core Architecture</div>
+  <a href="#engine-arch">4. Engine Architecture</a>
+  <a href="#data-flow">5. Calculation Flow</a>
+  <a href="#enrichment">6. Data Enrichment</a>
+  <a href="#rule-lifecycle">7. Rule Lifecycle</a>
+  <div class="toc-section">Rule Formats</div>
+  <a href="#mmed-format">8. MMED XML (Legacy)</a>
+  <a href="#prs-format">9. PRS JSON (New)</a>
+  <a href="#drl-patterns">10. DRL Patterns</a>
+  <a href="#promo-types">11. Promotion Types</a>
+  <div class="toc-section">Implementation</div>
+  <a href="#package-structure">12. Package Structure</a>
+  <a href="#endpoints">13. API Endpoints</a>
+  <a href="#config">14. Configuration</a>
+  <a href="#database">15. Database Schema</a>
+  <a href="#error-codes">16. Error Codes</a>
+  <a href="#changes-log">17. Changes Log</a>
+</nav>
+
+<main>
+
+<h1>PromoEngine</h1>
+<p class="subtitle">
+  Architecture &amp; Implementation Blueprint &nbsp;·&nbsp;
+  <span class="badge badge-red">rm3-engine-service (retired)</span>
+  <span class="badge badge-orange">MMED XML (legacy)</span>
+  <span style="color:var(--text-dim)">→</span>
+  <span class="badge badge-green">promoengine-service (new)</span>
+  <span class="badge badge-purple">PRS JSON (new format)</span>
+  &nbsp;·&nbsp; March 2026
+</p>
+
+<!-- ═══════════════════════════════════════════ 1. WHAT WAS BUILT -->
+<h2 id="overview">1. What Was Built</h2>
+
+<p>
+  PromoEngine is a <strong>cloud-native, multi-tenant promotion calculation engine</strong> for retail SaaS.
+  It replaces two legacy services and a proprietary engine JAR with a single Spring Boot 3.2 application
+  using <strong>Drools 8.x</strong> as the open-source rule engine, a clean JSON API, and a portable
+  rule file format (PRS) that eliminates vendor lock-in.
+</p>
+
+<div class="grid3">
+  <div class="card">
+    <h4 style="color:var(--accent2)">Core Engine</h4>
+    <ul>
+      <li>Drools 8.44.0.Final (Apache 2.0)</li>
+      <li>StatelessKieSession per request</li>
+      <li>AtomicReference zero-downtime reload</li>
+      <li>Multi-tenant engine registry</li>
+      <li>142 Karate tests — all passing</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--accent)">Rule Formats</h4>
+    <ul>
+      <li>DRL stored in Oracle DB (CLOB)</li>
+      <li>MMED XML import (legacy, kept)</li>
+      <li>PRS JSON import (new, delta-aware)</li>
+      <li>7 promotion type patterns</li>
+      <li>Batch import: single engine reload</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--accent5)">API Surface</h4>
+    <ul>
+      <li>POST /calculate — 200/206</li>
+      <li>Full CRUD for rules + lifecycle</li>
+      <li>POST /import (MMED XML)</li>
+      <li>POST /import/prs (PRS JSON)</li>
+      <li>API key auth + multi-tenancy</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout callout-info">
+  <strong>Maven coordinates</strong>
+  <code>io.promoengine:promoengine-service:1.0.0-SNAPSHOT</code> &nbsp;·&nbsp;
+  Root package: <code>io.promoengine</code> &nbsp;·&nbsp;
+  Context path: <code>/promotionengine/api</code> (override via <code>PE_CONTEXT_PATH</code>)
+</div>
+
+<!-- ═══════════════════════════════════════════ 2. TRANSFORMATION -->
+<h2 id="transformation">2. What Was Replaced &amp; Why</h2>
+
+<div class="vs-table">
+  <div class="vs-col">
+    <h4 style="color:var(--accent4)">❌ Retired (Legacy)</h4>
+    <ul>
+      <li><span class="tag-removed">Proprietary engine JAR (RM3E-3.5.0.jar)</span> — JNI/native C++, not containerisable</li>
+      <li><span class="tag-removed">rm3-engine-service</span> — Java 8 WAR, Tomcat 7, RPSD XML</li>
+      <li><span class="tag-removed">Engine pool</span> — ArrayBlockingQueue of 20, spin-loop + semaphore</li>
+      <li><span class="tag-removed">MML DSL</span> — proprietary Marketing Markup Language</li>
+      <li><span class="tag-removed">MMED XML (new imports)</span> — vendor-specific format</li>
+      <li><span class="tag-removed">JAXB InvoiceRequest/Invoice</span> — XML/SOAP in calculation path</li>
+      <li><span class="tag-removed">Internal HTTP call</span> — service-to-service for every calculation</li>
+      <li><span class="tag-removed">Silent item drop</span> — items with no price were silently skipped</li>
+    </ul>
+  </div>
+  <div class="vs-col">
+    <h4 style="color:var(--accent2)">✅ New Approach</h4>
+    <ul>
+      <li><span class="tag-new">Drools 8.x (Apache 2.0)</span> — pure Java, container-native</li>
+      <li><span class="tag-new">StatelessKieSession</span> — thread-safe, no pool needed</li>
+      <li><span class="tag-new">AtomicReference&lt;KieBase&gt;</span> — zero-downtime hot reload</li>
+      <li><span class="tag-new">DRL (Drools Rule Language)</span> — open standard, stored in Oracle DB</li>
+      <li><span class="tag-new">PRS JSON format</span> — portable, delta-aware, vendor-free</li>
+      <li><span class="tag-new">Java POJOs</span> — CalculateRequest/Response (JSON REST)</li>
+      <li><span class="tag-new">In-JVM calculation</span> — zero internal HTTP hops</li>
+      <li><span class="tag-new">skippedItems[]</span> — explicit in response, HTTP 206 Partial Content</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ 3. ARCHITECTURAL DECISIONS -->
+<h2 id="decisions">3. Confirmed Architectural Decisions</h2>
+
+<table>
+  <tr><th>#</th><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
+  <tr><td>D1</td><td>Product brand</td><td><code>PromoEngine</code> / <code>io.promoengine</code></td><td>New product — no legacy naming (rm3, capgemini, makro)</td></tr>
+  <tr><td>D2</td><td>Context path</td><td><code>/promotionengine/api</code></td><td>Configurable via PE_CONTEXT_PATH for legacy cutover</td></tr>
+  <tr><td>D3</td><td>Engine JAR</td><td>Drools 8.44.0.Final</td><td>Apache 2.0, pure Java, no JNI, containerisable</td></tr>
+  <tr><td>D4</td><td>OpenSearch indexes</td><td>promoprice / promoitem / promocustomer</td><td>Migrated from rm3* names; configurable via PE_*_INDEX</td></tr>
+  <tr><td>D5</td><td>Partial results</td><td>HTTP 206 Partial Content</td><td>skippedItems[] always explicit; 200 only when all items calculated</td></tr>
+  <tr><td>D6</td><td>Multi-tenancy</td><td>API key → tenantId; per-tenant KieBase</td><td>Full isolation from day one; ConcurrentHashMap registry</td></tr>
+  <tr><td>D7</td><td>Session model</td><td>StatelessKieSession per request</td><td>Thread-safe; no pool; KieBase is shared immutable compiled form</td></tr>
+  <tr><td>D8</td><td>Rule reload</td><td>AtomicReference.set() swap</td><td>Zero downtime; in-flight sessions complete with old KieBase</td></tr>
+  <tr><td>D9</td><td>Rule lifecycle</td><td>DRAFT → ACTIVE → INACTIVE</td><td>Never hard-deleted; full history table for audit/rollback</td></tr>
+  <tr><td>D10</td><td>Batch activation</td><td>Single engine reload at end of batch</td><td>Critical for 5,213 rule import — not one reload per rule</td></tr>
+  <tr><td>D11</td><td>Rule file format</td><td>PRS JSON (new) + MMED XML (legacy kept)</td><td>PRS is vendor-free, delta-aware, human-readable; MMED kept for backward compat</td></tr>
+  <tr><td>D12</td><td>Monetary precision</td><td>BigDecimal, 3dp, HALF_UP</td><td>Consistent with retail pricing standards</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 4. ENGINE ARCHITECTURE -->
+<h2 id="engine-arch">4. Engine Architecture — 3-Tier Design</h2>
+
+<div class="layer-block">
+  <div class="layer-header" style="border-bottom:1px solid var(--border)">
+    <span class="badge badge-blue">TIER 1</span>
+    <span style="color:var(--text-bright);font-weight:600">Source of Truth — Oracle Database</span>
+  </div>
+  <div class="layer-body">
+    <p>Table <code>promotion_rule</code> — one row per promotion. <code>rule_body</code> column is the complete DRL text (CLOB).</p>
+    <p>Table <code>promotion_rule_history</code> — every version of every rule, forever (no hard delete).</p>
+    <p>Rule lifecycle states: <span class="badge badge-orange">DRAFT</span> → <span class="badge badge-green">ACTIVE</span> → <span class="badge badge-red">INACTIVE</span></p>
+    <p>S3 is import-only — initial bulk load or migration. Database is always the source of truth.</p>
+    <span class="class-chip">PromotionRuleEntity</span>
+    <span class="class-chip">PromotionRuleHistoryEntity</span>
+    <span class="class-chip">PromotionRuleRepository</span>
+    <span class="class-chip">PromotionRuleHistoryRepository</span>
+  </div>
+</div>
+
+<div class="layer-block">
+  <div class="layer-header" style="border-bottom:1px solid var(--border)">
+    <span class="badge badge-purple">TIER 2</span>
+    <span style="color:var(--text-bright);font-weight:600">Compiled Rule Set — JVM Heap (per tenant)</span>
+  </div>
+  <div class="layer-body">
+    <p><code>PromotionRuleLoader</code> reads ACTIVE rules from DB → <code>List&lt;RuleDefinition&gt;</code></p>
+    <p>DRL text → <code>KieFileSystem</code> → <code>KieBuilder</code> → <code>KieBase</code> (compiled, immutable, thread-safe)</p>
+    <p>Reload: compile new KieBase → <code>AtomicReference.set(newBase)</code> — zero downtime. In-flight sessions complete with old KieBase.</p>
+    <span class="class-chip">PromotionRuleEngine</span>
+    <span class="class-chip">PromotionRuleLoader</span>
+    <span class="class-chip">RuleDefinition</span>
+  </div>
+</div>
+
+<div class="layer-block">
+  <div class="layer-header" style="border-bottom:1px solid var(--border)">
+    <span class="badge badge-green">TIER 3</span>
+    <span style="color:var(--text-bright);font-weight:600">Calculation — TenantEngineRegistry</span>
+  </div>
+  <div class="layer-body">
+    <p><code>ConcurrentHashMap&lt;tenantId, PromotionRuleEngine&gt;</code> — one engine per tenant.</p>
+    <p>Per request: <code>kieBase.newStatelessKieSession()</code> → <code>session.execute(facts)</code> → session discarded.</p>
+    <p>No pool. No acquire/release. StatelessKieSession is cheap and disposable.</p>
+    <span class="class-chip">TenantEngineRegistry</span>
+    <span class="class-chip">EngineFactBuilder</span>
+    <span class="class-chip">CalculationResult</span>
+  </div>
+</div>
+
+<pre><code><span class="comment">// Zero-downtime reload pattern</span>
+<span class="keyword">void</span> reload(List&lt;RuleDefinition&gt; rules) {
+    KieBase newBase = compile(rules);     <span class="comment">// ~100-500ms compile</span>
+    kieBaseRef.set(newBase);             <span class="comment">// atomic swap — never blocks callers</span>
+}
+
+<span class="comment">// Thread-safe calculation — snapshot ref first</span>
+CalculationResult calculate(EnrichedTransaction tx) {
+    KieBase base = kieBaseRef.get();     <span class="comment">// snapshot — reload-safe</span>
+    StatelessKieSession session = base.newStatelessKieSession();
+    List&lt;PromotionResult&gt; results = <span class="keyword">new</span> ArrayList&lt;&gt;();
+    session.setGlobal(<span class="string">"results"</span>, results);
+    session.execute(EngineFactBuilder.build(tx));
+    <span class="keyword">return new</span> CalculationResult(results, tx.getSkippedItems());
+    <span class="comment">// session auto-discarded — KieBase ref released</span>
+}</code></pre>
+
+<!-- ═══════════════════════════════════════════ 5. DATA FLOW -->
+<h2 id="data-flow">5. Full Calculation Flow</h2>
+
+<div class="flow-box">
+  <div class="flow-node client"><div class="label">REST Client</div><div class="name">POST /calculate</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">JSON + X-API-Key</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service"><div class="label">Controller</div><div class="name">Promotion<br>Controller</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service"><div class="label">Security</div><div class="name">ApiKeyAuth<br>Filter</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">API key → tenantId</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service"><div class="label">Service</div><div class="name">Promotion<br>Service</div></div>
+</div>
+
+<div class="flow-box">
+  <div class="flow-node data"><div class="label">Parallel enrichment</div><div class="name">Price · Item<br>· Customer</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">CompletableFuture.allOf()</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service"><div class="label">Enrichment</div><div class="name">Enriched<br>Transaction</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">skippedItems[] if no price</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node engine"><div class="label">Drools</div><div class="name">Promotion<br>RuleEngine</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">StatelessKieSession</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service"><div class="label">Mapper</div><div class="name">Response<br>Mapper</div><div style="font-size:10px;color:var(--text-dim);margin-top:4px">200 or 206</div></div>
+</div>
+
+<table>
+  <tr><th>Step</th><th>Component</th><th>Input</th><th>Output</th></tr>
+  <tr><td>1</td><td>ApiKeyAuthFilter</td><td>X-API-Key header</td><td>tenantId injected into request attributes</td></tr>
+  <tr><td>2</td><td>EnrichmentService (parallel)</td><td>CalculateRequest</td><td>EnrichedTransaction {enrichedItems, skippedItems}</td></tr>
+  <tr><td>2a</td><td>PriceRepository</td><td>sku + storeId</td><td>PriceData (unitPrice, lineAmount) — 3-step fallback</td></tr>
+  <tr><td>2b</td><td>ItemRepository</td><td>sku list</td><td>ItemPropertyData (category, dept, food flag) — 2-step fallback</td></tr>
+  <tr><td>2c</td><td>CustomerRepository</td><td>customerId</td><td>CustomerData (group, type) — 2-step fallback</td></tr>
+  <tr><td>3</td><td>EngineFactBuilder</td><td>EnrichedTransaction</td><td>List&lt;Object&gt; Drools facts (Transaction + InvoiceItem[])</td></tr>
+  <tr><td>4</td><td>PromotionRuleEngine</td><td>facts list</td><td>CalculationResult {promotionResults, skippedItems}</td></tr>
+  <tr><td>5</td><td>PromotionResponseMapper</td><td>CalculationResult</td><td>CalculateResponse (BigDecimal 3dp, STANDARD/COUPON)</td></tr>
+  <tr><td>6</td><td>PromotionController</td><td>CalculateResponse</td><td>HTTP 200 (all items) or HTTP 206 (skippedItems non-empty)</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 6. DATA ENRICHMENT -->
+<h2 id="enrichment">6. Data Enrichment Layer</h2>
+
+<h3>6.1 Price Lookup — 3-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Query</th><th>On Miss</th></tr>
+  <tr><td>1</td><td>OpenSearch <code>promoprice</code></td><td>sku + storeId</td><td>Try step 2</td></tr>
+  <tr><td>2</td><td>OpenSearch <code>promoprice</code></td><td>sku + sentinel <code>999999</code></td><td>Try step 3</td></tr>
+  <tr><td>3</td><td>Oracle DB (price table)</td><td>item_no + store_code</td><td>Add to <code>skippedItems[]</code></td></tr>
+</table>
+<p>Steps 1 &amp; 2 run in parallel via <code>CompletableFuture</code>. Step 3 only if both miss. Items with no price are <strong>never silently dropped</strong> — always appear in <code>skippedItems[]</code>.</p>
+
+<h3>6.2 Item Properties — 2-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Fields Retrieved</th></tr>
+  <tr><td>1</td><td>OpenSearch <code>promoitem</code></td><td>categoryCode, subcategoryCode, departmentCode, foodItem</td></tr>
+  <tr><td>2</td><td>Oracle DB (item property table)</td><td>Same fields — SQL fallback</td></tr>
+</table>
+
+<h3>6.3 Customer Data — 2-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Fields Retrieved</th></tr>
+  <tr><td>1</td><td>OpenSearch <code>promocustomer</code></td><td>customerGroupCode, customerTypeCode</td></tr>
+  <tr><td>2</td><td>Oracle DB (customer property table)</td><td>Same fields — SQL fallback</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 7. RULE LIFECYCLE -->
+<h2 id="rule-lifecycle">7. Rule Lifecycle</h2>
+
+<div class="flow-box" style="align-items:center">
+  <div class="flow-node" style="border-color:var(--accent3)"><div class="name" style="color:var(--accent3)">DRAFT</div><div style="font-size:10px;color:var(--text-dim)">Created / updated<br>Not in engine</div></div>
+  <div class="arrow">→ activate()</div>
+  <div class="flow-node" style="border-color:var(--accent2)"><div class="name" style="color:var(--accent2)">ACTIVE</div><div style="font-size:10px;color:var(--text-dim)">Loaded in KieBase<br>Applied to calculations</div></div>
+  <div class="arrow">→ deactivate()</div>
+  <div class="flow-node" style="border-color:var(--accent4)"><div class="name" style="color:var(--accent4)">INACTIVE</div><div style="font-size:10px;color:var(--text-dim)">Removed from engine<br>Preserved in DB</div></div>
+</div>
+
+<p>Rules are <strong>never hard-deleted</strong>. Every state change is recorded in <code>promotion_rule_history</code>. Rollback to any previous version is supported via <code>POST /api/v1/rules/{id}/rollback?version=N</code>.</p>
+
+<div class="callout callout-warn">
+  <strong>DRL validation before activation</strong>
+  <code>activate()</code> compiles a test KieBase before changing status to ACTIVE. Invalid DRL throws HTTP 422 with <code>errorCode=14</code>. The rule remains DRAFT.
+</div>
+
+<p><strong>Batch operations</strong> (<code>activateBatch</code> / <code>deactivateBatch</code>) process N rules but trigger only ONE engine reload at the end — critical for bulk imports of thousands of rules.</p>
+
+<!-- ═══════════════════════════════════════════ 8. MMED FORMAT -->
+<h2 id="mmed-format">8. MMED XML Format (Legacy — Kept for Backward Compatibility)</h2>
+
+<div class="callout callout-info">
+  <strong>Still supported</strong>
+  The MMED XML import endpoint (<code>POST /api/v1/rules/import</code>) is kept for backward compatibility with existing rule generator systems. No new rules should be authored in MMED format — use PRS JSON instead.
+</div>
+
+<h3>8.1 File Format — Real QA Format</h3>
+<pre><code><span class="comment">&lt;!-- Root element with namespace --&gt;</span>
+&lt;<span class="type">ns3:mmed</span> <span class="field">xmlns:ns3</span>=<span class="string">"http://www.capgemini.com/rm3/common/mmed"</span>&gt;
+  &lt;<span class="type">ns3:promotion</span>&gt;
+    &lt;<span class="field">promotionID</span>&gt;100556820&lt;/<span class="field">promotionID</span>&gt;
+    &lt;<span class="field">promotionType</span>&gt;3&lt;/<span class="field">promotionType</span>&gt;
+    &lt;<span class="field">priority</span>&gt;40&lt;/<span class="field">priority</span>&gt;
+    &lt;<span class="field">startDate</span>&gt;2023-01-06&lt;/<span class="field">startDate</span>&gt;
+    &lt;<span class="field">endDate</span>&gt;2043-12-31&lt;/<span class="field">endDate</span>&gt;
+    &lt;<span class="field">mmedCode</span>&gt;H4sIAAAAA...&lt;/<span class="field">mmedCode</span>&gt;  <span class="comment">&lt;!-- Base64+gzip+JavaSerial --&gt;</span>
+  &lt;/<span class="type">ns3:promotion</span>&gt;
+&lt;/<span class="type">ns3:mmed</span>&gt;</code></pre>
+
+<h3>8.2 mmedCode Decoding</h3>
+<div class="step-list">
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body"><h4>Base64 decode</h4><p>Pad to multiple-of-4 if needed: <code>int rem = s.length() % 4; if (rem != 0) s += "=".repeat(4-rem);</code></p></div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body"><h4>GZip decompress</h4><p><code>GZIPInputStream → ByteArrayOutputStream</code></p></div>
+  </div>
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body"><h4>Strip Java serialization header</h4><p>Magic: <code>0xAC 0xED 0x00 0x05 0x74</code> + 2-byte string length. Skip 7 bytes → read as ISO-8859-1.</p></div>
+  </div>
+</div>
+
+<h3>8.3 MML DSL Patterns (inside decoded mmedCode)</h3>
+<table>
+  <tr><th>MML Token</th><th>Meaning</th><th>DRL Generated</th></tr>
+  <tr><td><code>PS(N,(ITEM(12,"sku")))</code></td><td>Promotion Set N — list of SKUs (type 12 = item no.)</td><td>SKU condition: <code>sku in ("a","b")</code></td></tr>
+  <tr><td><code>RESTYPE(a,b,c,DISCOUNT,...)</code></td><td>4th param = discount amount in baht</td><td><code>discountAmount(new BigDecimal("X"))</code></td></tr>
+  <tr><td><code>QMIN(qty,0,qty,PS(N))</code></td><td>Min quantity for PS group N</td><td><code>accumulate(...quantity...) + eval($qty >= N)</code></td></tr>
+  <tr><td><code>AMIN(amount,...,PS(N))</code></td><td>Min spend amount for PS group N</td><td><code>accumulate(...lineAmount...) + eval($amt >= X)</code></td></tr>
+  <tr><td><code>MOSTEXP(N,PS(x))</code></td><td>Apply to N most expensive items in group</td><td>$topItem binding + <code>not InvoiceItem(unitPrice &gt; $topItem.unitPrice)</code></td></tr>
+  <tr><td><code>DATE_BETWEEN(yyyyMMdd,yyyyMMdd)</code></td><td>Date validity range</td><td><code>!transactionDate.isBefore(...) &amp;&amp; !transactionDate.isAfter(...)</code></td></tr>
+  <tr><td><code>MULTIPLE</code></td><td>Rule fires multiple times per transaction</td><td><code>multipleFires=true</code> in PrsRule</td></tr>
+  <tr><td><code>LP</code></td><td>Also calculates loyalty points</td><td><code>loyaltyPoints=true</code> in PrsRule</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 9. PRS FORMAT -->
+<h2 id="prs-format">9. PRS JSON Format (New — Recommended)</h2>
+
+<p>
+  <strong>PRS (PromoRuleSet)</strong> is a portable, human-readable JSON format that replaces MMED XML
+  for new rule authoring workflows. It covers all 7 real-world promotion scenarios, supports delta
+  imports (upsert/delete per rule with version-based conflict detection), and has no vendor dependencies.
+</p>
+
+<h3>9.1 Full PRS JSON Example</h3>
+<pre><code>{
+  <span class="field">"format"</span>:      <span class="string">"prs"</span>,
+  <span class="field">"version"</span>:     <span class="string">"1.1"</span>,
+  <span class="field">"generatedAt"</span>: <span class="string">"2026-03-04T10:00:00Z"</span>,
+  <span class="field">"tenantId"</span>:    <span class="string">"default"</span>,          <span class="comment">// optional — overrides API key tenant</span>
+  <span class="field">"rules"</span>: [
+    {
+      <span class="field">"id"</span>:          <span class="string">"100556820"</span>,
+      <span class="field">"version"</span>:     <span class="number">3</span>,               <span class="comment">// skip if DB version &gt;= 3</span>
+      <span class="field">"action"</span>:      <span class="string">"upsert"</span>,         <span class="comment">// "upsert" | "delete"</span>
+      <span class="field">"description"</span>: <span class="string">"Buy 10 electronics — 20 baht off"</span>,
+      <span class="field">"promotionType"</span>: <span class="number">3</span>,
+      <span class="field">"priority"</span>:    <span class="number">40</span>,
+      <span class="field">"startDate"</span>:   <span class="string">"2023-01-06"</span>,
+      <span class="field">"endDate"</span>:     <span class="string">"2043-12-31"</span>,
+      <span class="field">"trigger"</span>: {
+        <span class="field">"type"</span>: <span class="string">"BUY_QTY"</span>,
+        <span class="field">"groups"</span>: [{
+          <span class="field">"skus"</span>:   [<span class="string">"824216"</span>, <span class="string">"108389"</span>],
+          <span class="field">"minQty"</span>: <span class="number">10</span>
+        }]
+      },
+      <span class="field">"application"</span>: { <span class="field">"type"</span>: <span class="string">"MOST_EXPENSIVE"</span>, <span class="field">"count"</span>: <span class="number">1</span> },
+      <span class="field">"discount"</span>:    { <span class="field">"type"</span>: <span class="string">"FIXED"</span>, <span class="field">"amount"</span>: <span class="number">20.00</span> }
+    }
+  ]
+}</code></pre>
+
+<h3>9.2 Delta Logic</h3>
+<table>
+  <tr><th>Scenario</th><th>Action</th><th>Result</th></tr>
+  <tr><td>Rule not in DB + action=upsert</td><td>Create as DRAFT → batch activate</td><td>created++</td></tr>
+  <tr><td>Rule in DB, file version &gt; DB version</td><td>Update ruleBody + bump version → batch activate</td><td>updated++</td></tr>
+  <tr><td>Rule in DB, file version ≤ DB version</td><td>Skip (already current)</td><td>skipped++</td></tr>
+  <tr><td>action=delete + rule is ACTIVE in DB</td><td>Batch deactivate</td><td>deleted++</td></tr>
+  <tr><td>action=delete + rule not ACTIVE</td><td>Skip</td><td>skipped++</td></tr>
+</table>
+
+<h3>9.3 Import Endpoint</h3>
+<pre><code>POST /api/v1/rules/import/prs
+Content-Type: application/json
+X-API-Key: &lt;key&gt;
+
+<span class="comment">// Response</span>
+{
+  <span class="field">"total"</span>:   <span class="number">5213</span>,
+  <span class="field">"created"</span>: <span class="number">120</span>,
+  <span class="field">"updated"</span>: <span class="number">45</span>,
+  <span class="field">"deleted"</span>: <span class="number">3</span>,
+  <span class="field">"skipped"</span>: <span class="number">5045</span>,
+  <span class="field">"errors"</span>:  []
+}</code></pre>
+
+<!-- ═══════════════════════════════════════════ 10. DRL PATTERNS -->
+<h2 id="drl-patterns">10. DRL Patterns — Generated by PrsDrlConverter</h2>
+
+<h3>10.1 Standard DRL Header (prepended automatically by PromotionRuleEngine)</h3>
+<pre><code><span class="keyword">package</span> io.promoengine.rules;
+<span class="keyword">import</span> io.promoengine.engine.model.InvoiceItem;
+<span class="keyword">import</span> io.promoengine.engine.model.Transaction;
+<span class="keyword">import</span> io.promoengine.engine.model.Customer;
+<span class="keyword">import</span> io.promoengine.engine.model.PromotionResult;
+<span class="keyword">import</span> java.math.BigDecimal;
+<span class="keyword">import</span> java.util.List;
+<span class="keyword">global</span> List&lt;PromotionResult&gt; results;</code></pre>
+
+<h3>10.2 BUY_QTY + TRANSACTION — Buy N items, fixed baht off</h3>
+<pre><code>rule <span class="string">"100556820"</span>
+  salience <span class="number">40</span>
+  when
+    $tx : Transaction(
+        !transactionDate.isBefore(java.time.LocalDate.parse(<span class="string">"2023-01-06"</span>)),
+        !transactionDate.isAfter(java.time.LocalDate.parse(<span class="string">"2043-12-31"</span>)))
+    accumulate(
+        io.promoengine.engine.model.InvoiceItem(sku <span class="keyword">in</span> (<span class="string">"824216"</span>, <span class="string">"108389"</span>), $q1 : quantity),
+        $qty1 : sum($q1)
+    )
+    eval($qty1.intValue() &gt;= <span class="number">10</span>)
+  then
+    results.add(PromotionResult.builder()
+      .promotionId(<span class="string">"100556820"</span>).promotionType(<span class="number">3</span>)
+      .description(<span class="string">"Buy 10 electronics — 20 baht off"</span>)
+      .discountAmount(<span class="keyword">new</span> java.math.BigDecimal(<span class="string">"20.0000"</span>)).timesApplied(<span class="number">1.0</span>).build());
+end</code></pre>
+
+<h3>10.3 BUY_QTY + MOST_EXPENSIVE — Apply discount to most expensive item</h3>
+<pre><code>    <span class="comment">// ... qty accumulate conditions above ...</span>
+    $topItem : io.promoengine.engine.model.InvoiceItem(sku <span class="keyword">in</span> (<span class="string">"824216"</span>, <span class="string">"108389"</span>))
+    not io.promoengine.engine.model.InvoiceItem(sku <span class="keyword">in</span> (<span class="string">"824216"</span>, <span class="string">"108389"</span>), unitPrice &gt; $topItem.unitPrice)</code></pre>
+
+<h3>10.4 SPEND_MIN — Spend minimum amount trigger</h3>
+<pre><code>    accumulate(
+        io.promoengine.engine.model.InvoiceItem(sku <span class="keyword">in</span> (<span class="string">"111"</span>, <span class="string">"222"</span>), $la1 : lineAmount),
+        $amt1 : sum($la1)
+    )
+    eval($amt1.doubleValue() &gt;= <span class="number">185.0</span>)</code></pre>
+
+<h3>10.5 CROSS_GROUP — Multiple independent groups (AND logic)</h3>
+<pre><code>    <span class="comment">// Group 1: spend min on product A</span>
+    accumulate(
+        io.promoengine.engine.model.InvoiceItem(sku == <span class="string">"SKU_A"</span>, $la1 : lineAmount),
+        $amt1 : sum($la1)
+    )
+    eval($amt1.doubleValue() &gt;= <span class="number">500.0</span>)
+    <span class="comment">// Group 2: buy min qty of product B</span>
+    accumulate(
+        io.promoengine.engine.model.InvoiceItem(sku == <span class="string">"SKU_B"</span>, $q2 : quantity),
+        $qty2 : sum($q2)
+    )
+    eval($qty2.intValue() &gt;= <span class="number">3</span>)</code></pre>
+
+<!-- ═══════════════════════════════════════════ 11. PROMOTION TYPES -->
+<h2 id="promo-types">11. Promotion Types — from QA Data (5,213 real rules)</h2>
+
+<table>
+  <tr><th>promotionType</th><th>Count</th><th>%</th><th>Trigger</th><th>Application</th><th>PRS pattern</th></tr>
+  <tr class="promo-type-row">
+    <td>3</td><td>4,625</td><td>88.7%</td>
+    <td>Buy min qty of SKU group</td><td>MOST_EXPENSIVE (count=1)</td>
+    <td>BUY_QTY + MOST_EXPENSIVE</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>20</td><td>212</td><td>4.1%</td>
+    <td>Buy min qty across multiple SKUs</td><td>TRANSACTION discount</td>
+    <td>BUY_QTY + TRANSACTION</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>22</td><td>169</td><td>3.2%</td>
+    <td>Buy N of same SKU group</td><td>MOST_EXPENSIVE (count=N)</td>
+    <td>BUY_QTY + MOST_EXPENSIVE count&gt;1</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>21</td><td>42</td><td>0.8%</td>
+    <td>Multi-group AND (buy N of A AND M of B)</td><td>TRANSACTION</td>
+    <td>CROSS_GROUP + BUY_QTY</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>30</td><td>60</td><td>1.2%</td>
+    <td>Spend minimum amount</td><td>TRANSACTION</td>
+    <td>SPEND_MIN + TRANSACTION</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>31</td><td>30</td><td>0.6%</td>
+    <td>Cross-group spend min (X on A AND Y on B)</td><td>TRANSACTION</td>
+    <td>CROSS_GROUP + SPEND_MIN</td>
+  </tr>
+  <tr class="promo-type-row">
+    <td>1001</td><td>12</td><td>0.2%</td>
+    <td>Depends on another promo firing first</td><td>TRANSACTION</td>
+    <td>Complex prerequisite (future work)</td>
+  </tr>
+</table>
+
+<div class="callout callout-info">
+  <strong>promotionType coding</strong>
+  Values &lt; 10 → <span class="badge badge-blue">STANDARD</span> promotion.
+  Values ≥ 10 → <span class="badge badge-purple">COUPON</span> / loyalty promotion.
+  This maps to <code>standardDiscount</code> vs <code>couponDiscount</code> in the response.
+</div>
+
+<!-- ═══════════════════════════════════════════ 12. PACKAGE STRUCTURE -->
+<h2 id="package-structure">12. Package Structure</h2>
+
+<div class="pkg-tree">
+<span class="d">io.promoengine</span><br>
+├── <span class="f">PromoEngineApplication.java</span><br>
+├── <span class="f">PromoEngineProperties.java</span>        <span class="note">@ConfigurationProperties(prefix="promoengine")</span><br>
+│<br>
+├── <span class="d">config/</span><br>
+│   ├── <span class="f">SecurityConfig.java</span><br>
+│   ├── <span class="f">OpenSearchConfig.java</span><br>
+│   └── <span class="f">AwsConfig.java</span><br>
+│<br>
+├── <span class="d">security/</span><br>
+│   ├── <span class="f">ApiKeyAuthFilter.java</span>            <span class="note">OncePerRequestFilter — X-API-Key → tenantId</span><br>
+│   └── <span class="f">TenantResolver.java</span><br>
+│<br>
+├── <span class="d">engine/</span><br>
+│   ├── <span class="d">model/</span><br>
+│   │   ├── <span class="f">InvoiceItem.java</span>              <span class="note">sku, unitPrice, lineAmount, quantity, categoryCode, foodItem</span><br>
+│   │   ├── <span class="f">Transaction.java</span>              <span class="note">storeId, customerId, transactionDate</span><br>
+│   │   ├── <span class="f">Customer.java</span><br>
+│   │   └── <span class="f">PromotionResult.java</span>          <span class="note">promotionId, promotionType, discountAmount, timesApplied</span><br>
+│   ├── <span class="f">EngineFactBuilder.java</span>            <span class="note">EnrichedTransaction → List&lt;Object&gt; Drools facts</span><br>
+│   ├── <span class="f">PromotionRuleEngine.java</span>          <span class="note">AtomicReference&lt;KieBase&gt; + StatelessKieSession</span><br>
+│   ├── <span class="f">TenantEngineRegistry.java</span>         <span class="note">ConcurrentHashMap&lt;tenantId, PromotionRuleEngine&gt;</span><br>
+│   ├── <span class="f">EngineConfig.java</span><br>
+│   ├── <span class="f">CalculationResult.java</span><br>
+│   └── <span class="f">PromotionCalculationResult.java</span><br>
+│<br>
+├── <span class="d">rules/</span><br>
+│   ├── <span class="f">PromotionRuleService.java</span>         <span class="note">create/activate/deactivate/rollback/activateBatch/deactivateBatch</span><br>
+│   ├── <span class="f">PromotionRuleLoader.java</span>          <span class="note">DB → List&lt;RuleDefinition&gt;</span><br>
+│   ├── <span class="f">RuleDefinition.java</span><br>
+│   ├── <span class="f">RuleExpiryScheduler.java</span><br>
+│   ├── <span class="f">MmedXmlParser.java</span>               <span class="note">Legacy — ns3 namespace XML + mmedCode decode</span><br>
+│   ├── <span class="f">MmlToDrlConverter.java</span>           <span class="note">Legacy — MML DSL → DRL (simple + real MMED)</span><br>
+│   ├── <span class="new">PrsRuleSet.java</span>                   <span class="note">NEW — PRS DTO hierarchy (PrsRule/Trigger/Group/Application/Discount)</span><br>
+│   ├── <span class="new">PrsDrlConverter.java</span>              <span class="note">NEW — PrsRule → DRL string (all 7 promotion types)</span><br>
+│   └── <span class="new">PrsRuleImporter.java</span>              <span class="note">NEW — delta-aware batch import, single engine reload</span><br>
+│<br>
+├── <span class="d">enrichment/</span><br>
+│   ├── <span class="f">EnrichmentService.java</span>            <span class="note">CompletableFuture.allOf() — parallel price+item+customer</span><br>
+│   ├── <span class="f">EnrichedTransaction.java</span><br>
+│   ├── <span class="d">price/</span>    <span class="note">PriceRepository, OpenSearchPriceRepository, DatabasePriceRepository</span><br>
+│   ├── <span class="d">item/</span>     <span class="note">ItemRepository, OpenSearchItemRepository, DatabaseItemRepository</span><br>
+│   └── <span class="d">customer/</span> <span class="note">CustomerRepository, OpenSearchCustomerRepository, DatabaseCustomerRepository</span><br>
+│<br>
+├── <span class="d">domain/jpa/</span><br>
+│   ├── <span class="f">PromotionRuleEntity.java</span>          <span class="note">@Entity promotion_rule — id, tenantId, ruleBody (CLOB), status, version</span><br>
+│   ├── <span class="f">PromotionPresetEntity.java</span><br>
+│   ├── <span class="f">PromotionRuleHistoryEntity.java</span>   <span class="note">Full audit trail — every version forever</span><br>
+│   ├── <span class="f">PromotionRuleRepository.java</span><br>
+│   ├── <span class="f">PromotionPresetRepository.java</span><br>
+│   └── <span class="f">PromotionRuleHistoryRepository.java</span><br>
+│<br>
+├── <span class="d">dto/</span><br>
+│   ├── <span class="d">request/</span>  <span class="note">CalculateRequest, OrderItem, CreateRuleRequest, <span class="new">PrsRuleSet</span></span><br>
+│   └── <span class="d">response/</span> <span class="note">CalculateResponse, OrderSummary, CalculatedItem, AppliedPromotion, ErrorResponse</span><br>
+│<br>
+├── <span class="d">mapper/</span><br>
+│   └── <span class="f">PromotionResponseMapper.java</span>      <span class="note">Manual mapper — BigDecimal 3dp, STANDARD/COUPON split</span><br>
+│<br>
+├── <span class="d">controller/</span><br>
+│   ├── <span class="f">PromotionController.java</span>          <span class="note">POST /api/v1/promotions/calculate</span><br>
+│   ├── <span class="f">PromotionRuleController.java</span>      <span class="note">CRUD + lifecycle (activate/deactivate/rollback/test/history)</span><br>
+│   ├── <span class="f">PromotionPresetController.java</span><br>
+│   ├── <span class="f">RuleImportController.java</span>         <span class="note">POST /import (MMED XML) + <span class="new">POST /import/prs</span></span><br>
+│   └── <span class="f">VersionController.java</span><br>
+│<br>
+└── <span class="d">exception/</span><br>
+    ├── <span class="f">RuleCompilationException.java</span>    <span class="note">→ HTTP 422, errorCode 14</span><br>
+    ├── <span class="f">TenantNotFoundException.java</span>     <span class="note">→ HTTP 401, errorCode 50</span><br>
+    ├── <span class="f">RuleSetException.java</span>            <span class="note">→ HTTP 400/422</span><br>
+    ├── <span class="f">EnrichmentException.java</span>         <span class="note">→ HTTP 500, errorCode 99</span><br>
+    └── <span class="f">GlobalExceptionHandler.java</span>      <span class="note">@RestControllerAdvice — all exception → ErrorResponse</span>
+</div>
+
+<!-- ═══════════════════════════════════════════ 13. API ENDPOINTS -->
+<h2 id="endpoints">13. API Endpoints</h2>
+
+<h3>13.1 Calculation</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Success</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/promotions/calculate</code></td><td>X-API-Key</td><td>200 / 206</td><td>Calculate promotions for a transaction</td></tr>
+</table>
+
+<h3>13.2 Rule Management</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Success</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules</code></td><td>201</td><td>Create rule (DRAFT status)</td></tr>
+  <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/v1/rules</code></td><td>200</td><td>List rules (paginated, filter by status/type)</td></tr>
+  <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/v1/rules/{id}</code></td><td>200</td><td>Get single rule</td></tr>
+  <tr><td><span class="badge badge-orange">PUT</span></td><td><code>/api/v1/rules/{id}</code></td><td>200</td><td>Update rule (resets to DRAFT, bumps version)</td></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/{id}/activate</code></td><td>200</td><td>Validate DRL + set ACTIVE + reload engine</td></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/{id}/deactivate</code></td><td>200</td><td>Set INACTIVE + reload engine</td></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/{id}/rollback?version=N</code></td><td>200</td><td>Restore previous version</td></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/{id}/test</code></td><td>200</td><td>Dry-run DRAFT rule without activating</td></tr>
+  <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/v1/rules/{id}/history</code></td><td>200</td><td>Full version history</td></tr>
+</table>
+
+<h3>13.3 Bulk Import</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Content-Type</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/import</code></td><td>multipart/form-data</td><td>Import from MMED XML file (legacy)</td></tr>
+  <tr><td><span class="badge badge-purple">POST</span></td><td><code>/api/v1/rules/import/prs</code></td><td>application/json</td><td>Import from PRS JSON — delta-aware (NEW)</td></tr>
+  <tr><td><span class="badge badge-green">POST</span></td><td><code>/api/v1/rules/import/s3</code></td><td>—</td><td>Trigger import from configured S3 path</td></tr>
+</table>
+
+<h3>13.4 System</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
+  <tr><td><span class="badge badge-blue">GET</span></td><td><code>/api/v1/version</code></td><td>X-API-Key</td><td>Engine version, Drools version, build info</td></tr>
+  <tr><td><span class="badge badge-blue">GET</span></td><td><code>/actuator/health</code></td><td>None</td><td>K8s liveness/readiness probe → UP / DOWN</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 14. CONFIGURATION -->
+<h2 id="config">14. Configuration</h2>
+
+<table class="env-table">
+  <tr><th>Env Var</th><th>Default</th><th>Description</th></tr>
+  <tr><td>PE_CONTEXT_PATH</td><td>/promotionengine/api</td><td>Context path — set to legacy path for cutover</td></tr>
+  <tr><td>PE_DB_URL</td><td>(required)</td><td>Oracle JDBC URL</td></tr>
+  <tr><td>PE_DB_USERNAME</td><td>(required)</td><td>DB username</td></tr>
+  <tr><td>PE_DB_PASSWORD</td><td>(required)</td><td>DB password</td></tr>
+  <tr><td>PE_OPENSEARCH_URI</td><td>(required)</td><td>OpenSearch cluster URI</td></tr>
+  <tr><td>PE_OPENSEARCH_USERNAME</td><td>(empty)</td><td>OpenSearch auth</td></tr>
+  <tr><td>PE_API_KEY</td><td>change-me</td><td>API key for default tenant</td></tr>
+  <tr><td>PE_DEFAULT_TENANT</td><td>default</td><td>tenantId for default API key</td></tr>
+  <tr><td>PE_MULTI_TENANT</td><td>true</td><td>Enable multi-tenancy</td></tr>
+  <tr><td>PE_PRICE_INDEX</td><td>promoprice</td><td>OpenSearch index for prices</td></tr>
+  <tr><td>PE_ITEM_INDEX</td><td>promoitem</td><td>OpenSearch index for item properties</td></tr>
+  <tr><td>PE_CUSTOMER_INDEX</td><td>promocustomer</td><td>OpenSearch index for customer data</td></tr>
+  <tr><td>PE_S3_BUCKET</td><td>(empty)</td><td>S3 bucket for bulk XML import</td></tr>
+  <tr><td>PE_EXPIRY_CRON</td><td>0 0 2 * * *</td><td>Rule expiry scheduler cron (2am daily)</td></tr>
+  <tr><td>PE_ENGINE_DECIMALS</td><td>3</td><td>Decimal places for monetary rounding</td></tr>
+  <tr><td>PE_LOG_LEVEL</td><td>INFO</td><td>Log level for io.promoengine package</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════ 15. DATABASE SCHEMA -->
+<h2 id="database">15. Database Schema</h2>
+
+<pre><code><span class="comment">-- Core rule storage</span>
+CREATE TABLE promotion_rule (
+    id               VARCHAR2(100)  PRIMARY KEY,       <span class="comment">-- promotionId</span>
+    tenant_id        VARCHAR2(50)   DEFAULT 'default',
+    rule_body        CLOB           NOT NULL,           <span class="comment">-- DRL text</span>
+    description      VARCHAR2(4000),
+    priority         NUMBER(5)      DEFAULT 10,
+    status           VARCHAR2(10)   DEFAULT 'DRAFT',    <span class="comment">-- DRAFT|ACTIVE|INACTIVE</span>
+    version          NUMBER(5)      DEFAULT 1,
+    start_date       DATE,
+    end_date         DATE,
+    created_at       TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    created_by       VARCHAR2(100),
+    updated_at       TIMESTAMP,
+    updated_by       VARCHAR2(100)
+);
+
+<span class="comment">-- Full audit trail — every version forever, never deleted</span>
+CREATE TABLE promotion_rule_history (
+    history_id    NUMBER         GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    rule_id       VARCHAR2(100)  NOT NULL,
+    version       NUMBER(5)      NOT NULL,
+    rule_body     CLOB           NOT NULL,
+    status        VARCHAR2(10),
+    changed_at    TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    changed_by    VARCHAR2(100),
+    change_reason VARCHAR2(500)
+);
+
+<span class="comment">-- Preset definitions (item groupings reused across rules)</span>
+CREATE TABLE promotion_preset (
+    id        VARCHAR2(100)  PRIMARY KEY,
+    tenant_id VARCHAR2(50)   DEFAULT 'default',
+    rule_body CLOB           NOT NULL,
+    status    VARCHAR2(10)   DEFAULT 'ACTIVE',
+    created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+);</code></pre>
+
+<!-- ═══════════════════════════════════════════ 16. ERROR CODES -->
+<h2 id="error-codes">16. Error Codes</h2>
+
+<table>
+  <tr><th>errorCode</th><th>HTTP</th><th>When</th></tr>
+  <tr><td><code>0</code></td><td>200 / 206</td><td>Success (206 when skippedItems non-empty)</td></tr>
+  <tr><td><code>14</code></td><td>422</td><td>DRL compilation failed (invalid Drools syntax)</td></tr>
+  <tr><td><code>16</code></td><td>400</td><td>Rule not found / no active rules for tenant</td></tr>
+  <tr><td><code>41</code></td><td>500</td><td>Drools engine init failed</td></tr>
+  <tr><td><code>50</code></td><td>401</td><td>Invalid or missing X-API-Key header</td></tr>
+  <tr><td><code>99</code></td><td>500</td><td>Unexpected internal error</td></tr>
+</table>
+
+<div class="callout callout-warn">
+  <strong>Error response shape</strong>
+  <code>{ "errorCode": 14, "message": "DRL compilation failed: syntax error on line 3" }</code>
+  Stack traces are NEVER exposed to clients — logged server-side only.
+</div>
+
+<!-- ═══════════════════════════════════════════ 17. CHANGES LOG -->
+<h2 id="changes-log">17. Changes Log</h2>
+
+<h3>Phase 1 — Core Engine (Steps 1–16)</h3>
+<table>
+  <tr><th>Step</th><th>What Was Built</th><th>Test</th></tr>
+  <tr><td>1</td><td>Maven scaffold, Spring Boot 3.2.2 app shell, Drools BOM, Karate setup</td><td>scaffold.feature</td></tr>
+  <tr><td>2</td><td>Exception classes (RuleCompilationException, TenantNotFoundException, etc.)</td><td>exceptions.feature</td></tr>
+  <tr><td>3</td><td>Engine POJO model (InvoiceItem, Transaction, Customer, PromotionResult)</td><td>engine-pojos.feature</td></tr>
+  <tr><td>4</td><td>JPA entities (PromotionRuleEntity, PromotionRuleHistoryEntity, Preset)</td><td>jpa-entities.feature</td></tr>
+  <tr><td>5</td><td>OpenSearch document models (PriceDocument, ItemDocument, CustomerDocument)</td><td>opensearch-documents.feature</td></tr>
+  <tr><td>6</td><td>PromotionRuleEngine (AtomicReference KieBase, StatelessKieSession), TenantEngineRegistry</td><td>promotion-rule-engine.feature</td></tr>
+  <tr><td>7</td><td>PromotionRuleService (CRUD, activate, deactivate, rollback), RuleExpiryScheduler, MmedXmlParser, MmlToDrlConverter</td><td>promotion-rule-service.feature</td></tr>
+  <tr><td>8</td><td>Enrichment repositories (OpenSearch + Oracle DB fallback for price/item/customer)</td><td>enrichment-repository.feature</td></tr>
+  <tr><td>9</td><td>EnrichmentService (CompletableFuture.allOf parallel enrichment, skippedItems)</td><td>enrichment-service.feature</td></tr>
+  <tr><td>10</td><td>Request/Response DTOs (CalculateRequest, CalculateResponse, validation)</td><td>dto-validation.feature</td></tr>
+  <tr><td>11</td><td>PromotionResponseMapper (manual, BigDecimal 3dp, STANDARD/COUPON split)</td><td>promotion-response-mapper.feature</td></tr>
+  <tr><td>12</td><td>PromotionService (orchestrator, 200 vs 206 logic)</td><td>promotion-service.feature</td></tr>
+  <tr><td>13</td><td>All REST controllers (calculate, rules CRUD, presets, import, version)</td><td>calculate-api.feature, rules-api.feature</td></tr>
+  <tr><td>14</td><td>ApiKeyAuthFilter, TenantResolver, SecurityConfig (stateless, no CSRF)</td><td>security-api.feature</td></tr>
+  <tr><td>15</td><td>GlobalExceptionHandler (@RestControllerAdvice, all error → ErrorResponse)</td><td>exception-handler.feature</td></tr>
+  <tr><td>16</td><td>Full Karate E2E suite (rule lifecycle, multi-tenant isolation, concurrent requests)</td><td>e2e-suite.feature</td></tr>
+</table>
+
+<h3>Phase 2 — MMED XML Real Format (Post Step 16)</h3>
+<table>
+  <tr><th>Component</th><th>Change</th></tr>
+  <tr><td>MmedXmlParser.java</td><td>Full rewrite — namespace-aware parsing (ns3:mmed), mmedCode decode (Base64+gzip+Java-serial header strip), two-path detection (ns3 vs simple)</td></tr>
+  <tr><td>MmlToDrlConverter.java</td><td>Added convertMmedMml() — real MML DSL parsing: RESTYPE (4th param=discount), PS group SKU extraction (ITEM type 12), QMIN conditions per PS group</td></tr>
+  <tr><td>RuleImportController.java</td><td>Fixed compile error: entity.getPromotionId() not entity.get("promotionId")</td></tr>
+</table>
+
+<h3>Phase 3 — PRS JSON Format (New Rule Import System)</h3>
+<table>
+  <tr><th>Component</th><th>Change</th></tr>
+  <tr><td><span class="tag-new">PrsRuleSet.java</span></td><td>NEW — portable JSON rule file format with static inner classes: PrsRule, PrsTrigger, PrsGroup, PrsApplication, PrsDiscount. Covers all 7 promotion scenarios. Delta support: action + version fields.</td></tr>
+  <tr><td><span class="tag-new">PrsDrlConverter.java</span></td><td>NEW — converts PrsRule → Drools DRL string. Handles: BUY_QTY (accumulate qty), SPEND_MIN (accumulate lineAmount), CROSS_GROUP (multiple groups), MOST_EXPENSIVE (topItem binding), date ranges.</td></tr>
+  <tr><td><span class="tag-new">PrsRuleImporter.java</span></td><td>NEW — delta-aware batch import service. Batch-loads existing rules, compares versions, creates/updates/skips/deletes. Single engine reload at end (critical for 5k+ rule imports).</td></tr>
+  <tr><td>PromotionRuleService.java</td><td>Added: activateBatch(), deactivateBatch() (single engine reload for N rules), update() (reset to DRAFT + bump version). Fixed: create() reads version from request map.</td></tr>
+  <tr><td>RuleImportController.java</td><td>Added: POST /api/v1/rules/import/prs endpoint with PrsRuleSet @RequestBody. Injected PrsRuleImporter. Updated tag description.</td></tr>
+</table>
+
+<hr class="section-sep">
+<p style="color:var(--text-dim);font-size:12px;text-align:center">
+  PromoEngine Architecture Blueprint &nbsp;·&nbsp; Generated 2026-03-04 &nbsp;·&nbsp;
+  <code>io.promoengine:promoengine-service:1.0.0-SNAPSHOT</code>
+</p>
+
+</main>
+
+<script>
+  // Highlight active TOC item on scroll
+  const headings = document.querySelectorAll('h2[id], h3[id]');
+  const links = document.querySelectorAll('.toc-sidebar a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    headings.forEach(h => { if (window.scrollY >= h.offsetTop - 60) current = h.id; });
+    links.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+
+</body>
+</html>
