@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromoEngine — Implementation Plan</title>
+<style>
+  :root {
+    --bg:#0d1117;--surface:#161b22;--border:#30363d;
+    --accent:#58a6ff;--accent2:#3fb950;--warn:#f78166;
+    --warn2:#e3b341;--text:#e6edf3;--muted:#8b949e;
+    --code-bg:#1f2937;--tag-bg:#1f3a5f;--tag2-bg:#1a3a2a;
+    --tag3-bg:#3a1a1a;--tag4-bg:#3a341a;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;min-height:100vh}
+  nav{width:270px;min-width:270px;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  nav .logo{font-size:16px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  nav .logo-sub{font-size:11px;color:var(--muted);margin-bottom:20px}
+  nav h2{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:8px;margin-top:16px}
+  nav a{display:block;font-size:12.5px;color:var(--muted);text-decoration:none;padding:5px 8px;border-radius:4px;margin-bottom:2px;line-height:1.4}
+  nav a:hover,nav a.active{background:var(--border);color:var(--text)}
+  main{flex:1;padding:48px 56px;max-width:1100px}
+  h1{font-size:28px;font-weight:700;color:var(--text);margin-bottom:8px}
+  h2{font-size:20px;font-weight:600;color:var(--accent);margin-top:48px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  h3{font-size:15px;font-weight:600;color:var(--text);margin-top:24px;margin-bottom:10px}
+  h4{font-size:13px;font-weight:600;color:var(--warn2);margin-top:16px;margin-bottom:8px}
+  p{font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:12px}
+  .subtitle{font-size:14px;color:var(--muted);margin-bottom:32px}
+  code{background:var(--code-bg);color:#79c0ff;padding:2px 6px;border-radius:4px;font-size:12.5px;font-family:'Fira Code','Consolas',monospace}
+  pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;margin:16px 0}
+  pre code{background:none;padding:0;color:var(--text);font-size:12.5px;line-height:1.6}
+  .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;margin:2px}
+  .tag-blue{background:var(--tag-bg);color:var(--accent)}
+  .tag-green{background:var(--tag2-bg);color:var(--accent2)}
+  .tag-red{background:var(--tag3-bg);color:var(--warn)}
+  .tag-yellow{background:var(--tag4-bg);color:var(--warn2)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+  th{background:var(--surface);color:var(--muted);padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:hover td{background:var(--surface)}
+  .callout{border-left:3px solid;padding:14px 18px;border-radius:0 6px 6px 0;margin:16px 0;font-size:13.5px;line-height:1.6}
+  .callout-blue{border-color:var(--accent);background:#0c1929}
+  .callout-green{border-color:var(--accent2);background:#0c1a12}
+  .callout-red{border-color:var(--warn);background:#1a0c0c}
+  .callout-yellow{border-color:var(--warn2);background:#1a160c}
+  .callout strong{color:var(--text)}
+  .pill-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:12px 0}
+  .step-num{display:inline-block;background:var(--accent);color:#000;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:11px;font-weight:700;margin-right:8px}
+  .step h3{display:inline;font-size:14px}
+  .step p{margin-top:8px;margin-left:30px}
+  .step code{font-size:11.5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px}
+  .card h4{color:var(--accent2);margin-top:0;font-size:13px}
+  .card p,.card li{font-size:12.5px;color:var(--muted)}
+  ul,ol{padding-left:20px;margin:8px 0}
+  li{font-size:13.5px;line-height:1.7;color:var(--muted);margin-bottom:2px}
+  .del{color:var(--warn);text-decoration:line-through}
+  .add{color:var(--accent2)}
+  hr{border:none;border-top:1px solid var(--border);margin:32px 0}
+  .discovery{background:#0d1f35;border:1px solid var(--accent);border-radius:8px;padding:18px 22px;margin:20px 0}
+  .discovery h3{color:var(--accent);margin-top:0}
+  .brand{color:var(--accent);font-weight:700}
+  .name-box{background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:20px 24px;margin:16px 0}
+  .name-box h3{color:var(--accent);margin-top:0;font-size:18px}
+  .name-box p{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">PromoEngine</div>
+  <div class="logo-sub">Implementation Plan v1.0</div>
+  <h2>Sections</h2>
+  <a href="#overview">1. Overview &amp; Vision</a>
+  <a href="#jar-analysis">2. Engine Analysis &amp; Replacement</a>
+  <a href="#jar-replace">&nbsp;&nbsp;↳ Drools Replacement</a>
+  <a href="#architecture">3. Architecture</a>
+  <a href="#zero-xml">4. Zero-XML Transaction Flow</a>
+  <a href="#naming">5. Complete Naming System</a>
+  <a href="#packages">6. Package Structure</a>
+  <a href="#api-contract">7. REST API Contract</a>
+  <a href="#engine-layer">8. Engine Layer Design</a>
+  <a href="#enrichment">9. Data Enrichment Layer</a>
+  <a href="#ruleset">10. Promotion Rule Architecture</a>
+  <a href="#ruleset-mmed">&nbsp;&nbsp;↳ What MMED Is</a>
+  <a href="#ruleset-problems">&nbsp;&nbsp;↳ Problems with File Approach</a>
+  <a href="#ruleset-arch">&nbsp;&nbsp;↳ New 3-Tier Architecture</a>
+  <a href="#ruleset-db">&nbsp;&nbsp;↳ Database Schema</a>
+  <a href="#ruleset-engine">&nbsp;&nbsp;↳ Engine Loading</a>
+  <a href="#ruleset-reload">&nbsp;&nbsp;↳ Rolling Reload</a>
+  <a href="#config">11. Configuration</a>
+  <a href="#endpoints">12. Endpoints</a>
+  <a href="#errors">13. Error Handling</a>
+  <a href="#impl-order">14. Implementation Order</a>
+  <a href="#not-carried">15. What Is Dropped</a>
+  <a href="#questions">16. Open Questions</a>
+</nav>
+
+<main>
+
+<h1>PromoEngine — Service Implementation Plan</h1>
+<p class="subtitle">
+  A new SaaS promotion calculation engine — built for retail, designed for the market.<br>
+  March 2026 &nbsp;|&nbsp; Status: <span class="tag tag-green">All Questions Resolved — Ready for Implementation</span>
+</p>
+
+<!-- ─── 1. OVERVIEW ─── -->
+<section id="overview">
+<h2>1. Overview &amp; Vision</h2>
+
+<div class="name-box">
+  <h3>Product: PromoEngine</h3>
+  <p>A cloud-native SaaS promotion calculation engine. Retailers and e-commerce platforms send a transaction (store, customer, items + quantities) and receive back calculated promotions, discounts, and final prices — in milliseconds. No legacy dependencies, no vendor lock-in, pure REST JSON API.</p>
+</div>
+
+<div class="grid3">
+  <div class="card">
+    <h4>Target Market</h4>
+    <p>Any retailer or e-commerce platform needing real-time promotion calculation at the point of sale or online checkout. Multi-tenant SaaS architecture.</p>
+  </div>
+  <div class="card">
+    <h4>Core Capability</h4>
+    <p>Applies complex promotion rules (percentage discounts, amount off, buy-X-get-Y, coupons, bundles) across an entire transaction in a single API call.</p>
+  </div>
+  <div class="card">
+    <h4>Key Design Principle</h4>
+    <p>Zero XML in the public API. Clean JSON in, clean JSON out. Rule definitions stay internal — callers never see engine internals.</p>
+  </div>
+</div>
+
+<h3>What This Service Replaces (Internal Reference Only)</h3>
+<p>Internally this consolidates two legacy systems into one product. No external artefact or class name should reference those origins.</p>
+<table>
+  <tr><th>Legacy System</th><th>Role</th><th>Disposition</th></tr>
+  <tr><td>Legacy Engine Service (Java 8 WAR)</td><td>XML-in/XML-out engine wrapper, spin-loop pool</td><td>Fully replaced — architecture rewritten</td></tr>
+  <tr><td>Legacy Core Service (Spring Boot)</td><td>SOAP XML, OpenSearch + Oracle enrichment</td><td>Merged into PromoEngine, SOAP eliminated</td></tr>
+</table>
+
+<h3>Technology Stack</h3>
+<div class="pill-row">
+  <span class="tag tag-blue">Spring Boot 3.2.2</span>
+  <span class="tag tag-blue">Java 17</span>
+  <span class="tag tag-blue">Maven — JAR packaging</span>
+  <span class="tag tag-blue">OpenSearch</span>
+  <span class="tag tag-blue">Oracle DB (fallback)</span>
+  <span class="tag tag-blue">AWS S3 SDK v2</span>
+  <span class="tag tag-blue">SpringDoc OpenAPI 3</span>
+  <span class="tag tag-blue">Lombok</span>
+  <span class="tag tag-green">Promotion Rule Engine JAR (internal)</span>
+</div>
+</section>
+
+<!-- ─── 2. JAR ANALYSIS ─── -->
+<section id="jar-analysis">
+<h2>2. Promotion Rule Engine JAR — Analysis</h2>
+
+<p>The proprietary promotion rule engine ships as a JAR. It was fully decompiled and analysed. The key discovery changes the entire implementation strategy.</p>
+
+<div class="discovery">
+  <h3>Critical Finding — Two API Layers Inside the JAR</h3>
+  <p style="color:#ccc;margin-top:8px;">
+    <strong>Layer 1 (High-Level / XML):</strong> A simulator class that accepts an XML string and returns an XML string. This is what the legacy services use — requiring full JAXB marshalling/unmarshalling per transaction.<br><br>
+    <strong>Layer 2 (Low-Level / Direct Java):</strong> A core engine interface that accepts typed Java objects (<code>EngineItem</code>) directly and delivers results via typed callbacks (<code>PromotionResult</code>). <strong>No XML required whatsoever.</strong><br><br>
+    By using Layer 2 directly, we eliminate <strong>all XML from the transaction path</strong>. No JAXB, no string parsing, no XML namespace manipulation.
+  </p>
+</div>
+
+<h3>Engine Adapter Pattern — Replacing the XML Layer</h3>
+<pre><code>// Legacy approach (Layer 1) — XML in, XML out
+legacySimulator.startSimulate(rpsdXmlString, 1);
+String result = legacySimulator.getRpsd();   // XML string
+
+// PromoEngine approach (Layer 2) — Java objects in, Java callbacks out — ZERO XML
+engine.pushItem(invoiceLineItem);            // typed Java object
+engine.pushItem(customerItem);
+engine.commitItems();
+engine.startCalculation();
+// → onPromotionResult(PromotionResult result) called for each matched promotion</code></pre>
+
+<h3>Legacy JAR API — Analysed, Not Used in New Service</h3>
+<p style="color:#aaa;margin-top:8px;">The JAR was fully analysed to understand what it does. <strong>PromoEngine replaces the JAR entirely with Drools 8.x</strong> — see Section 2.5 below. The table below documents what was found during analysis.</p>
+<table>
+  <tr><th>JAR Class</th><th>What It Does</th><th>Replaced By</th></tr>
+  <tr><td><code>RM3Interface</code></td><td>Core engine — accepts items, runs rules, fires callbacks</td><td>Drools <code>StatelessKieSession</code></td></tr>
+  <tr><td><code>RM3CallBack</code></td><td>Abstract callback — receives results via <code>CBNotifyPromoResult()</code></td><td>Drools <code>global List&lt;PromotionResult&gt; results</code></td></tr>
+  <tr><td><code>RM3Item</code></td><td>Numeric property bag (opaque IDs like 888, 887)</td><td><code>InvoiceItem</code>, <code>Transaction</code>, <code>Customer</code> POJOs</td></tr>
+  <tr><td><code>RM3PromoResult</code></td><td>Result from callback — getters for discount, type, text</td><td><code>PromotionResult</code> POJO (populated by DRL rules)</td></tr>
+  <tr><td><code>RM3PromoDef</code></td><td>Rule definition carrier — wraps MML code string</td><td>DRL rule text in <code>rule_body</code> DB column</td></tr>
+  <tr><td><code>MmedType</code></td><td>XML-parsed in-memory rule set</td><td><code>KieBase</code> compiled from DRL rules in DB</td></tr>
+  <tr><td>Old XML simulator (<code>RM3S</code>)</td><td>XML string in, XML string out</td><td>Eliminated entirely — replaced by REST JSON API</td></tr>
+</table>
+
+<h3 id="jar-replace">JAR Replacement — Why Drools?</h3>
+
+<div class="discovery">
+  <strong>Why the JAR must be replaced (confirmed):</strong>
+  <ul style="color:#ccc;margin:8px 0 0 16px;">
+    <li><strong>JNI / native C++ code</strong> — platform-specific binary; fails in Linux containers on ARM/x64 unless built for exact OS. Not cloud-native.</li>
+    <li><strong>Black box</strong> — no debuggability, no test coverage possible, no way to inspect rule evaluation.</li>
+    <li><strong>Vendor lock-in</strong> — MML (Marketing Markup Language) is a proprietary rule DSL. No open tooling, no community, no migration path.</li>
+    <li><strong>Not containerisable</strong> — Fargate, EKS, Cloud Run all require fully portable JARs.</li>
+    <li><strong>SaaS blocker</strong> — cannot redistribute a proprietary calculation engine as part of a market product.</li>
+  </ul>
+</div>
+
+<h4>Replacement: Drools 8.x (Apache)</h4>
+<table>
+  <tr><th>Concern</th><th class="del">Legacy JAR</th><th class="add">Drools 8.x</th></tr>
+  <tr><td>Runtime</td><td class="del">JNI / C++ native (platform-specific)</td><td class="add">Pure Java — runs anywhere JVM runs</td></tr>
+  <tr><td>Rule DSL</td><td class="del">MML (proprietary, undocumented)</td><td class="add">DRL (Drools Rule Language) — open standard</td></tr>
+  <tr><td>Thread safety</td><td class="del">One instance per concurrent request — requires pool of 20</td><td class="add"><code>KieBase</code> shared; <code>StatelessKieSession</code> per request — no pool needed</td></tr>
+  <tr><td>Zero-downtime reload</td><td class="del">One-at-a-time engine pool drain</td><td class="add"><code>AtomicReference&lt;KieBase&gt;</code> swap — truly instant, zero blocked requests</td></tr>
+  <tr><td>Debuggability</td><td class="del">None — black box</td><td class="add">Full rule tracing, Drools audit log, unit-testable rules</td></tr>
+  <tr><td>License</td><td class="del">Proprietary</td><td class="add">Apache 2.0 — redistributable as SaaS</td></tr>
+  <tr><td>Community</td><td class="del">None</td><td class="add">Large, mature (Red Hat / JBoss project since 2001)</td></tr>
+</table>
+
+<h4>How Rules Are Stored and Compiled</h4>
+<pre><code>// Rule stored in DB (rule_body column) as DRL text
+// This replaces the proprietary MML (mmedCode) in MMED XML
+
+rule "10% Off Electronics Over $100"
+    salience 10
+    when
+        $tx : Transaction()
+        accumulate(
+            InvoiceItem(categoryCode == "ELEC", $amount : lineAmount),
+            $total : sum($amount)
+        )
+        eval($total.doubleValue() > 100.0)
+    then
+        results.add(PromotionResult.builder()
+            .promotionId("ELEC10PCT")
+            .promotionType(0)           // 0 = STANDARD
+            .description("10% off electronics over $100")
+            .discountAmount($total.multiply(new java.math.BigDecimal("0.10")))
+            .timesApplied(1.0)
+            .build());
+end</code></pre>
+
+<h4>Compilation and Reload Flow</h4>
+<pre><code>// PromotionRuleEngine — one per tenant
+// KieBase = compiled ruleset; shared safely across concurrent sessions
+
+void reload(List&lt;RuleDefinition&gt; rules) {
+    KieServices ks = KieServices.Factory.get();
+    KieFileSystem kfs = ks.newKieFileSystem();
+    for (RuleDefinition r : rules) {
+        kfs.write("src/main/resources/rules/" + r.getPromotionId() + ".drl", r.getRuleBody());
+    }
+    KieBuilder kb = ks.newKieBuilder(kfs).buildAll();
+    if (kb.getResults().hasMessages(Message.Level.ERROR)) {
+        throw new RuleCompilationException(kb.getResults().toString());
+    }
+    KieBase newBase = ks.newKieContainer(ks.getRepository().getDefaultReleaseId()).getKieBase();
+    kieBaseRef.set(newBase);   // ← atomic swap — zero downtime, in-flight sessions unaffected
+}
+
+// Per calculation — StatelessKieSession is lightweight, created per request
+CalculationResult calculate(EnrichedTransaction tx) {
+    StatelessKieSession session = kieBaseRef.get().newStatelessKieSession();
+    List&lt;PromotionResult&gt; results = new ArrayList&lt;&gt;();
+    session.setGlobal("results", results);
+    session.execute(EngineFactBuilder.build(tx));
+    return new CalculationResult(results, tx.getSkippedItems());
+}</code></pre>
+
+<h3>Engine Data Model — PromoEngine POJOs</h3>
+<p style="color:#aaa;margin-top:8px;">Since the proprietary JAR is being replaced with Drools, the engine no longer uses opaque numeric property IDs (<code>PROP_ID_INVL_ART_NO</code>, <code>888L</code>, etc.). All data is passed as clean, typed Java POJOs that Drools rules reference by field name.</p>
+<table>
+  <tr><th>POJO Class</th><th>Field</th><th>Description</th><th>Source in PromoEngine</th></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>sku</code></td><td>Article / SKU number</td><td><code>CalculateRequest.items[].sku</code></td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>lineAmount</code></td><td>Total line amount (price × qty)</td><td>Computed from <code>promoprice</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>quantity</code></td><td>Purchased quantity</td><td><code>CalculateRequest.items[].quantity</code></td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>unitPrice</code></td><td>Unit regular price</td><td>Fetched from <code>promoprice</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>categoryCode</code></td><td>Product category</td><td>Fetched from <code>promoitem</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>subcategoryCode</code></td><td>Product sub-category</td><td>Fetched from <code>promoitem</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>departmentCode</code></td><td>Product department</td><td>Fetched from <code>promoitem</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>foodItem</code></td><td>Food indicator (boolean)</td><td>Fetched from <code>promoitem</code> index / DB</td></tr>
+  <tr><td><code>InvoiceItem</code></td><td><code>storeCode</code></td><td>Store identifier</td><td><code>CalculateRequest.storeId</code> — injected per line</td></tr>
+  <tr><td><code>Transaction</code></td><td><code>storeId</code></td><td>Store identifier (header)</td><td><code>CalculateRequest.storeId</code></td></tr>
+  <tr><td><code>Transaction</code></td><td><code>customerId</code></td><td>Customer identifier</td><td><code>CalculateRequest.customerId</code></td></tr>
+  <tr><td><code>Transaction</code></td><td><code>transactionDate</code></td><td>Transaction date</td><td><code>CalculateRequest.transactionDate</code></td></tr>
+  <tr><td><code>Customer</code></td><td><code>customerId</code></td><td>Customer identifier</td><td><code>CalculateRequest.customerId</code></td></tr>
+  <tr><td><code>Customer</code></td><td><code>customerGroupCode</code></td><td>Customer segment / group</td><td>Fetched from <code>promocustomer</code> index / DB</td></tr>
+</table>
+
+<h3>PromotionResult Fields</h3>
+<p style="color:#aaa;margin-top:8px;">DRL rules populate <code>PromotionResult</code> objects and add them to a <code>global List&lt;PromotionResult&gt; results</code> — replacing the proprietary callback mechanism.</p>
+<table>
+  <tr><th>PromotionResult Field</th><th>Type</th><th>Maps To (JSON response)</th><th>Notes</th></tr>
+  <tr><td><code>promotionId</code></td><td><code>String</code></td><td><code>promotions[].promotionId</code></td><td>Set by rule</td></tr>
+  <tr><td><code>promotionType</code></td><td><code>int</code></td><td><code>promotions[].type</code></td><td>&lt;10 → <code>"STANDARD"</code>, ≥10 → <code>"COUPON"</code></td></tr>
+  <tr><td><code>description</code></td><td><code>String</code></td><td><code>promotions[].description</code></td><td>Set by rule</td></tr>
+  <tr><td><code>timesApplied</code></td><td><code>double</code></td><td><code>promotions[].timesApplied</code></td><td>Set by rule</td></tr>
+  <tr><td><code>discountAmount</code></td><td><code>BigDecimal</code></td><td><code>promotions[].discountAmount</code></td><td>Rounded 3dp</td></tr>
+  <tr><td><code>lineDiscountAmount</code></td><td><code>BigDecimal</code></td><td><code>items[].appliedPromotions[].discountAmount</code></td><td>Per-line result</td></tr>
+  <tr><td><code>prerequisites</code></td><td><code>List&lt;String&gt;</code></td><td><code>promotions[].prerequisites[]</code></td><td>SKUs required to qualify</td></tr>
+</table>
+</section>
+
+<!-- ─── 3. ARCHITECTURE ─── -->
+<section id="architecture">
+<h2>3. Architecture</h2>
+
+<div class="callout callout-blue">
+<strong>Single service, single responsibility:</strong> PromoEngine is one deployable unit. The promotion rule engine runs in-JVM — no internal HTTP hops. The enrichment layer (price, item properties, customer) is embedded. One container, one API, one deployment.
+</div>
+
+<h3>Comparison — Old vs New</h3>
+<table>
+  <tr><th>Concern</th><th class="del">Legacy</th><th class="add">PromoEngine</th></tr>
+  <tr><td>External API</td><td class="del">SOAP XML over HTTP</td><td class="add">REST JSON — clean, standard</td></tr>
+  <tr><td>Internal engine call</td><td class="del">HTTP between 2 services + XML serialisation</td><td class="add">In-JVM direct Java API — no XML, no HTTP</td></tr>
+  <tr><td>Engine result format</td><td class="del">Parse XML string output</td><td class="add">Typed Java callbacks — <code>PromotionResult</code> objects</td></tr>
+  <tr><td>XML marshalling (JAXB)</td><td class="del">4 JAXB contexts, multiple marshal/unmarshal per request</td><td class="add">Eliminated entirely</td></tr>
+  <tr><td>Engine concurrency</td><td class="del">TreeMap + Semaphore + 3s spin-loop — pool of 20 instances — leaks on exception</td><td class="add">Drools <code>KieBase</code> — thread-safe, shared; one <code>StatelessKieSession</code> per request (lightweight, no pool needed)</td></tr>
+  <tr><td>Price lookup</td><td class="del">Vendor-specific index names, SOAP envelope wrapping</td><td class="add">Generic product index names, direct Java enrichment</td></tr>
+  <tr><td>Dropped items</td><td class="del">Silently ignored — no indication to caller</td><td class="add">Explicit <code>skippedItems[]</code> in response</td></tr>
+  <tr><td>Calculation engine</td><td class="del">Proprietary JAR with JNI/C++ native code (platform-specific, black box)</td><td class="add">Drools 8.x — pure Java, Apache 2.0, container-native, fully testable</td></tr>
+  <tr><td>Rule DSL</td><td class="del">MML (proprietary Marketing Markup Language)</td><td class="add">DRL (Drools Rule Language) — open standard, human-readable</td></tr>
+  <tr><td>Multi-tenancy</td><td class="del">Single tenant only</td><td class="add">Full multi-tenant from day one — per-tenant rule sets and engine instances</td></tr>
+  <tr><td>Naming</td><td class="del">rm3*, capgemini.*, makro.rm3.*</td><td class="add">promoengine.*, PromoEngine branding throughout</td></tr>
+</table>
+</section>
+
+<!-- ─── 4. ZERO-XML FLOW ─── -->
+<section id="zero-xml">
+<h2>4. Zero-XML Transaction Flow</h2>
+
+<pre><code>POST /api/v1/promotions/calculate
+Content-Type: application/json
+X-API-Key: &lt;key&gt;
+Body: CalculateRequest (JSON)
+          │
+          ▼  PromotionController
+CalculateRequest { storeId, customerId, transactionDate, items[{sku, qty}] }
+          │
+          ▼  PromotionService (orchestrator)
+          │
+    ┌─────┴─────────────────────────────────────┐
+    │  PARALLEL (CompletableFuture)              │
+    │  ├─ PriceService.fetchPrices(skus,store)   │  OpenSearch promoprice → DB fallback
+    │  ├─ ItemService.fetchProperties(skus)      │  OpenSearch promoitem → DB fallback
+    │  └─ CustomerService.fetchCustomer(custId)  │  OpenSearch promocustomer → DB fallback
+    └─────┬─────────────────────────────────────┘
+          │
+          ▼  EnrichedTransaction assembled
+    {
+      priceMap:     Map&lt;sku → PriceData&gt;
+      propertyMap:  Map&lt;sku → ItemPropertyData&gt;
+      customerData: CustomerData
+      skippedItems: [skus with no price found]    ← explicit, not silently dropped
+    }
+          │
+          ▼  TenantEngineRegistry.getEngine(tenantId)
+    PromotionRuleEngine (Drools — thread-safe KieBase, no pool acquisition needed)
+          │
+          ▼  PromotionRuleEngine.calculate(EnrichedTransaction)
+    ┌─────────────────────────────────────────────────────────────┐
+    │  session = kieBase.newStatelessKieSession()                 │
+    │  results = new ArrayList&lt;PromotionResult&gt;()                │
+    │  session.setGlobal("results", results)                      │
+    │                                                             │
+    │  facts = EngineFactBuilder.build(tx)                        │
+    │    → Transaction( storeId, customerId, transactionDate )    │
+    │    → Customer( customerId, customerGroupCode )              │
+    │    → InvoiceItem( sku, storeCode, categoryCode,            │
+    │                   unitPrice, lineAmount, quantity, ... )    │
+    │      (one per enriched item — skippedItems excluded)        │
+    │                                                             │
+    │  session.execute(facts)                                     │
+    │    → DRL rules fire, populate 'results' global             │
+    │    → List&lt;PromotionResult&gt; (typed Java POJOs)              │
+    │                                                             │
+    │  session discarded — KieBase reference released             │
+    └─────────────────────────────────────────────────────────────┘
+          │
+          ▼  (no pool release needed — session is transient)
+    CalculationResult {
+      promotionResults: List&lt;PromotionResult&gt;    ← Java POJOs, no XML
+      lineResults:      Map&lt;sku → LineResult&gt;    ← per-line discount totals
+      skippedItems:     List&lt;String&gt;
+    }
+          │
+          ▼  PromotionResponseMapper.toResponse(result, request)
+    CalculateResponse (JSON) ← rounded to 3dp, STANDARD/COUPON enum
+          │
+          ▼
+    200 OK — application/json</code></pre>
+
+<div class="callout callout-green">
+<strong>Zero XML in the transaction path.</strong> The only XML used internally is the promotion rule definition file (loaded once at startup). This is the engine's internal rule language — not part of any API. External callers never see it.
+</div>
+</section>
+
+<!-- ─── 5. NAMING ─── -->
+<section id="naming">
+<h2>5. Complete Naming System</h2>
+
+<div class="callout callout-yellow">
+<strong>Golden Rule:</strong> No code, config key, index name, endpoint path, class name, or comment should contain <code>rm3</code>, <code>RM3</code>, <code>makro</code>, or <code>capgemini</code>. PromoEngine is a new, independent product.
+</div>
+
+<h3>Product Identity</h3>
+<table>
+  <tr><th>Item</th><th>Value</th></tr>
+  <tr><td>Product name</td><td><code>PromoEngine</code></td></tr>
+  <tr><td>Maven groupId</td><td><code>io.promoengine</code></td></tr>
+  <tr><td>Maven artifactId</td><td><code>promoengine-service</code></td></tr>
+  <tr><td>Java package root</td><td><code>io.promoengine</code></td></tr>
+  <tr><td>Main class</td><td><code>PromoEngineApplication</code></td></tr>
+  <tr><td>Spring app name</td><td><code>promoengine-service</code></td></tr>
+  <tr><td>Config property prefix</td><td><code>promoengine</code></td></tr>
+  <tr><td>Git repository</td><td><code>promoengine-service</code></td></tr>
+</table>
+
+<h3>OpenSearch Index Names</h3>
+<table>
+  <tr><th>Legacy Index Name</th><th>PromoEngine Index Name</th><th>Data Stored</th></tr>
+  <tr><td class="del">rm3getprice</td><td class="add">promoprice</td><td>Item prices per store</td></tr>
+  <tr><td class="del">rm3product</td><td class="add">promoitem</td><td>Item/product properties (group, dept, food indicator)</td></tr>
+  <tr><td class="del">rm3customerlist</td><td class="add">promocustomer</td><td>Customer group, type, card type</td></tr>
+</table>
+<div class="callout callout-green">
+Index names are migrated immediately to PromoEngine defaults. Legacy indices are retired. Each index name is still configurable via <code>PE_PRICE_INDEX</code>, <code>PE_ITEM_INDEX</code>, <code>PE_CUSTOMER_INDEX</code> for any edge-case override.
+</div>
+
+<h3>Class &amp; Component Naming</h3>
+<table>
+  <tr><th>Concept</th><th class="del">Legacy Names</th><th class="add">PromoEngine Names</th></tr>
+  <tr><td>Rule engine</td><td class="del">RM3S / EngineWrapper (proprietary JAR)</td><td class="add"><code>PromotionRuleEngine</code> (Drools <code>KieBase</code> + <code>StatelessKieSession</code>)</td></tr>
+  <tr><td>Engine registry</td><td class="del">rm3sList + rm3sSemList (pool of 20)</td><td class="add"><code>TenantEngineRegistry</code> (one per tenant, no pool needed)</td></tr>
+  <tr><td>Result collection</td><td class="del">(embedded callback in RM3S)</td><td class="add">Drools <code>global List&lt;PromotionResult&gt; results</code> (set per session)</td></tr>
+  <tr><td>Fact builder</td><td class="del">ServletService.convertToServletRequest()</td><td class="add"><code>EngineFactBuilder</code> (builds InvoiceItem / Transaction / Customer facts)</td></tr>
+  <tr><td>Response mapper</td><td class="del">Transformer.java</td><td class="add"><code>PromotionResponseMapper</code></td></tr>
+  <tr><td>Rule management</td><td class="del">MmedService (file-based)</td><td class="add"><code>PromotionRuleService</code> (DB-backed, DRL rule body per rule)</td></tr>
+  <tr><td>Rule importer</td><td class="del">S3DownloadFile (loads MMED on startup)</td><td class="add"><code>S3RuleImporter</code> (one-time bulk import only)</td></tr>
+  <tr><td>Price lookup result</td><td class="del">PriceRecord / SourceES</td><td class="add"><code>PriceData</code></td></tr>
+  <tr><td>Item property result</td><td class="del">Product / ItemStoreValue</td><td class="add"><code>ItemPropertyData</code></td></tr>
+  <tr><td>Customer result</td><td class="del">(various)</td><td class="add"><code>CustomerData</code></td></tr>
+  <tr><td>Enrichment output</td><td class="del">EnginePayload</td><td class="add"><code>EnrichedTransaction</code></td></tr>
+  <tr><td>Calculation request</td><td class="del">InvoiceRequest (JAXB)</td><td class="add"><code>CalculateRequest</code> (POJO)</td></tr>
+  <tr><td>Calculation response</td><td class="del">Invoice (JAXB)</td><td class="add"><code>CalculateResponse</code> (POJO)</td></tr>
+  <tr><td>Per-line result</td><td class="del">InvoiceLineType (JAXB XML)</td><td class="add"><code>CalculatedItem</code> (POJO)</td></tr>
+  <tr><td>Per-promo result</td><td class="del">InvoiceResultType (JAXB XML)</td><td class="add"><code>PromotionResult</code> (POJO)</td></tr>
+  <tr><td>Promotion type</td><td class="del">SPI (standard), CPI (coupon)</td><td class="add"><code>"STANDARD"</code>, <code>"COUPON"</code> (JSON enum string)</td></tr>
+  <tr><td>Silent article drop</td><td class="del">(not surfaced)</td><td class="add"><code>skippedItems[]</code> in response</td></tr>
+  <tr><td>Exceptions — timeout</td><td class="del">EngineTimeoutException</td><td class="add"><code>EngineTimeoutException</code></td></tr>
+  <tr><td>Exceptions — rules</td><td class="del">MmedException</td><td class="add"><code>RuleSetException</code></td></tr>
+  <tr><td>Exceptions — engine init</td><td class="del">EngineInitException</td><td class="add"><code>EngineInitException</code></td></tr>
+</table>
+
+<h3>Endpoint Path Naming</h3>
+<table>
+  <tr><th>Legacy Path</th><th>PromoEngine Path</th></tr>
+  <tr><td class="del">POST /v1/invoice (SOAP XML)</td><td class="add">POST /api/v1/promotions/calculate</td></tr>
+  <tr><td class="del">?action=upload_mmed</td><td class="add">POST /api/v1/ruleset/upload</td></tr>
+  <tr><td class="del">?action=reload_mmed</td><td class="add">POST /api/v1/ruleset/reload</td></tr>
+  <tr><td class="del">?action=version</td><td class="add">GET /api/v1/version</td></tr>
+  <tr><td class="del">GET /health-check</td><td class="add">GET /actuator/health</td></tr>
+</table>
+
+<h3>Configuration Key Naming</h3>
+<table>
+  <tr><th>Legacy Config Key</th><th>PromoEngine Config Key</th></tr>
+  <tr><td class="del">rm3.engine.max-engines</td><td class="add">promoengine.engine.max-instances</td></tr>
+  <tr><td class="del">rm3.mmed.local-path</td><td class="add">promoengine.rules.s3-key (S3 import only — DB is source of truth)</td></tr>
+  <tr><td class="del">rm3.security.api-key</td><td class="add">promoengine.security.api-key</td></tr>
+  <tr><td class="del">rm3.opensearch.rm3getprice.index</td><td class="add">promoengine.data.price-index</td></tr>
+  <tr><td class="del">rm3.opensearch.rm3product.index</td><td class="add">promoengine.data.item-index</td></tr>
+  <tr><td class="del">rm3.opensearch.rm3customerlist.index</td><td class="add">promoengine.data.customer-index</td></tr>
+  <tr><td class="del">DATASOURCE_URL / DATASOURCE_USERNAME</td><td class="add">PE_DB_URL / PE_DB_USERNAME (PE = PromoEngine prefix)</td></tr>
+  <tr><td class="del">SERVLET2_URL / SERVLET2_CONNECTION_TIMEOUT</td><td class="add">Eliminated — engine runs in-JVM</td></tr>
+</table>
+</section>
+
+<!-- ─── 6. PACKAGE STRUCTURE ─── -->
+<section id="packages">
+<h2>6. Package Structure</h2>
+
+<pre><code>io.promoengine/
+│
+├── PromoEngineApplication.java
+│
+├── config/
+│   └── PromoEngineProperties.java          @ConfigurationProperties("promoengine")
+│
+├── security/
+│   ├── ApiKeyAuthFilter.java               OncePerRequestFilter — X-API-Key header validation
+│   └── SecurityConfig.java                 Stateless, no CSRF, /actuator/health open
+│
+├── engine/                                 ← Drools engine layer. No proprietary JAR. Pure Java.
+│   ├── model/
+│   │   ├── InvoiceItem.java                 Drools fact — per invoice line (sku, price, category, etc.)
+│   │   ├── Transaction.java                 Drools fact — header (storeId, customerId, date)
+│   │   ├── Customer.java                    Drools fact — customer segment data
+│   │   └── PromotionResult.java             Result POJO — populated by DRL rules via global list
+│   ├── EngineFactBuilder.java               Converts EnrichedTransaction → List&lt;Object&gt; Drools facts
+│   ├── PromotionRuleEngine.java             AtomicReference&lt;KieBase&gt; + calculate() + reload()
+│   ├── TenantEngineRegistry.java            ConcurrentHashMap&lt;tenantId, PromotionRuleEngine&gt;
+│   ├── CalculationResult.java               Internal POJO — no XML, no JAR dependency
+│   ├── LineCalculationResult.java           Per-line discount breakdown
+│   └── PromotionCalculationResult.java      Per-promotion summary
+│
+├── rules/
+│   ├── PromotionRuleService.java            CRUD: create/activate/deactivate/rollback/test
+│   ├── PromotionRuleLoader.java             DB → List&lt;RuleDefinition&gt; (each with DRL rule_body)
+│   ├── RuleDefinition.java                  { promotionId, ruleBody (DRL text), priority }
+│   ├── MmlToDrlConverter.java               Converts legacy MML code → DRL (for MMED XML import only)
+│   ├── PromotionPresetService.java          Preset CRUD
+│   ├── RuleExpiryScheduler.java             @Scheduled — auto-deactivate past end_date
+│   ├── S3RuleImporter.java                  AWS S3 SDK v2 — bulk import only
+│   └── MmedXmlParser.java                   Parse legacy MMED XML → PromotionType records → DB rows
+│
+├── enrichment/
+│   ├── EnrichmentService.java               Parallel CompletableFuture orchestrator
+│   ├── EnrichedTransaction.java             Assembled: prices + properties + customer + skippedItems
+│   ├── PriceData.java                       { regularPrice, unitPrice, subGroupNo, groupNo, deptNo, foodIndicator }
+│   ├── ItemPropertyData.java                { subGroupNo, groupNo, deptNo, foodIndicator, extraProperties }
+│   ├── CustomerData.java                    { customerGroupNo, customerTypeNo, cardTypeNo }
+│   │
+│   ├── price/
+│   │   ├── PriceRepository.java             interface: findPrices(skus, storeId) → Map&lt;sku, PriceData&gt;
+│   │   ├── OpenSearchPriceRepository.java   Primary — queries "promoprice" index (configurable)
+│   │   └── DatabasePriceRepository.java     Fallback — Oracle DB query
+│   │
+│   ├── item/
+│   │   ├── ItemRepository.java              interface: findProperties(skus) → Map&lt;sku, ItemPropertyData&gt;
+│   │   ├── OpenSearchItemRepository.java    Primary — queries "promoitem" index (configurable)
+│   │   └── DatabaseItemRepository.java      Fallback — Oracle DB query
+│   │
+│   └── customer/
+│       ├── CustomerRepository.java          interface: findCustomer(id) → Optional&lt;CustomerData&gt;
+│       ├── OpenSearchCustomerRepository.java Primary — queries "promocustomer" index (configurable)
+│       └── DatabaseCustomerRepository.java   Fallback — Oracle DB query
+│
+├── dto/
+│   ├── request/
+│   │   ├── CalculateRequest.java            { requestId?, storeId, customerId, transactionDate, items[] }
+│   │   └── OrderItem.java                   { sku, quantity } with @NotNull, @Min(1)
+│   └── response/
+│       ├── CalculateResponse.java           Full response object
+│       ├── OrderSummary.java                { subtotal, totalDiscount, total }
+│       ├── CalculatedItem.java              Per-line result with promotion breakdown
+│       ├── AppliedPromotion.java            { promotionId, type, discountAmount } — per line
+│       ├── PromotionResult.java             { promotionId, type, description, timesApplied, discountAmount, prerequisites[] }
+│       └── ErrorResponse.java              { errorCode, message }
+│
+├── mapper/
+│   └── PromotionResponseMapper.java         CalculationResult + EnrichedTransaction → CalculateResponse
+│                                              Handles: rounding (3dp), STANDARD/COUPON enum, skippedItems
+│
+├── service/
+│   └── PromotionService.java                Main orchestrator:
+│                                              validate → enrich → acquire engine → calculate
+│                                              → release (finally) → map response
+│
+├── controller/
+│   ├── PromotionController.java             POST /api/v1/promotions/calculate
+│   ├── PromotionRuleController.java         GET|POST|PUT /api/v1/rules + activate/deactivate/rollback/test/history
+│   ├── PromotionPresetController.java       CRUD /api/v1/presets
+│   ├── RuleImportController.java            POST /api/v1/rules/import (file + S3)
+│   └── VersionController.java              GET /api/v1/version
+│
+└── exception/
+    ├── RuleCompilationException.java        DRL syntax error — HTTP 422 (rule create/update/activate)
+    ├── EngineInitException.java             Drools init failed — HTTP 500
+    ├── RuleSetException.java                General rule set error (with errorCode field)
+    ├── TenantNotFoundException.java         Unknown tenant from API key — HTTP 401
+    ├── EnrichmentException.java             Price/item/customer lookup failed — HTTP 500
+    └── GlobalExceptionHandler.java          @RestControllerAdvice — all exceptions → ErrorResponse</code></pre>
+
+<div class="callout callout-green">
+<strong>No proprietary dependency.</strong> The <code>engine/</code> package uses only standard Drools 8.x classes (<code>KieBase</code>, <code>StatelessKieSession</code>, <code>KieServices</code>) plus our own POJOs. No <code>lib/</code> directory, no JNI, no platform-specific binaries. The service is fully portable across any JVM 17+ environment.
+</div>
+</section>
+
+<!-- ─── 7. API CONTRACT ─── -->
+<section id="api-contract">
+<h2>7. REST API Contract</h2>
+
+<h3>Request — POST /api/v1/promotions/calculate</h3>
+<pre><code>Content-Type: application/json
+X-API-Key: &lt;key&gt;
+
+{
+  "requestId": "550e8400-e29b-41d4-a716-446655440000",  // optional — echoed back
+  "storeId": "0101",
+  "customerId": 123456,
+  "transactionDate": "2024-01-15",
+  "items": [
+    { "sku": "12345678", "quantity": 2 },
+    { "sku": "98765432", "quantity": 1 },
+    { "sku": "UNKNOWN99", "quantity": 1 }   // ← no price found: goes to skippedItems
+  ]
+}</code></pre>
+
+<h3>Response — 200 OK / 206 Partial Content</h3>
+<p style="color:#aaa;margin-top:4px;margin-bottom:8px;"><code>200 OK</code> when all items were calculated. <code>206 Partial Content</code> when <code>skippedItems[]</code> is non-empty (some SKUs had no price and were excluded from calculation).</p>
+<pre><code>{
+  "requestId": "550e8400-e29b-41d4-a716-446655440000",
+  "storeId": "0101",
+  "calculatedAt": "2024-01-15T10:30:00Z",
+  "summary": {
+    "subtotal":      299.700,
+    "totalDiscount":  30.000,
+    "total":         269.700
+  },
+  "items": [
+    {
+      "sku": "12345678",
+      "quantity": 2,
+      "unitPrice": 99.900,
+      "subtotal": 199.800,
+      "standardDiscount": 20.000,
+      "couponDiscount": 0.000,
+      "finalAmount": 179.800,
+      "appliedPromotions": [
+        { "promotionId": "PROMO001", "type": "STANDARD", "discountAmount": 20.000 }
+      ]
+    },
+    {
+      "sku": "98765432",
+      "quantity": 1,
+      "unitPrice": 99.900,
+      "subtotal": 99.900,
+      "standardDiscount": 10.000,
+      "couponDiscount": 0.000,
+      "finalAmount": 89.900,
+      "appliedPromotions": []
+    }
+  ],
+  "promotions": [
+    {
+      "promotionId": "PROMO001",
+      "type": "STANDARD",
+      "description": "Buy 2 electronics — 10% off",
+      "timesApplied": 1.0,
+      "discountAmount": 20.000,
+      "prerequisites": []
+    }
+  ],
+  "skippedItems": ["UNKNOWN99"]    // skus where no price could be resolved
+}</code></pre>
+
+<h3>Error Response (all errors)</h3>
+<pre><code>503 Service Unavailable
+{
+  "errorCode": 32,
+  "message": "All promotion engine instances are busy. Please retry in a moment."
+}</code></pre>
+
+<h3>Field Glossary — Legacy to PromoEngine</h3>
+<table>
+  <tr><th>Legacy Field (SOAP/JAXB)</th><th>PromoEngine JSON Field</th><th>Description</th></tr>
+  <tr><td><code>Inv</code></td><td><code>requestId</code></td><td>Transaction identifier</td></tr>
+  <tr><td><code>Sto</code></td><td><code>storeId</code></td><td>Store code</td></tr>
+  <tr><td><code>NTot</code></td><td><code>summary.subtotal</code></td><td>Total before discounts</td></tr>
+  <tr><td><code>DTot</code></td><td><code>summary.totalDiscount</code></td><td>Sum of all discounts</td></tr>
+  <tr><td><code>ITot</code></td><td><code>summary.total</code></td><td>Final payable amount</td></tr>
+  <tr><td><code>Lin.Art</code></td><td><code>items[].sku</code></td><td>Article SKU number</td></tr>
+  <tr><td><code>Lin.NAm</code></td><td><code>items[].subtotal</code></td><td>Net amount for this line</td></tr>
+  <tr><td><code>Lin.NPr</code></td><td><code>items[].unitPrice</code></td><td>Unit price</td></tr>
+  <tr><td><code>Lin.SDi</code></td><td><code>items[].standardDiscount</code></td><td>Standard promotion discount</td></tr>
+  <tr><td><code>Lin.CDi</code></td><td><code>items[].couponDiscount</code></td><td>Coupon discount</td></tr>
+  <tr><td><code>Lin.SPr</code></td><td><code>items[].finalAmount</code></td><td>Line amount after discounts</td></tr>
+  <tr><td><code>Lin.Pro[SPI]</code></td><td><code>items[].appliedPromotions[] type=STANDARD</code></td><td>Standard promotion on this line</td></tr>
+  <tr><td><code>Lin.Pro[CPI]</code></td><td><code>items[].appliedPromotions[] type=COUPON</code></td><td>Coupon promotion on this line</td></tr>
+  <tr><td><code>Res.Tim</code></td><td><code>promotions[].timesApplied</code></td><td>Times the promotion fired</td></tr>
+  <tr><td><code>Res.Txt</code></td><td><code>promotions[].description</code></td><td>Promotion description text</td></tr>
+  <tr><td><code>Res.Dis</code></td><td><code>promotions[].discountAmount</code></td><td>Total discount for this promotion</td></tr>
+  <tr><td><code>Res.Pre</code></td><td><code>promotions[].prerequisites[]</code></td><td>Required prerequisite items</td></tr>
+  <tr><td><em>silent drop</em></td><td><code>skippedItems[]</code></td><td>Items with no price — explicit</td></tr>
+</table>
+</section>
+
+<!-- ─── 8. ENGINE LAYER ─── -->
+<section id="engine-layer">
+<h2>8. Engine Layer Design (Drools 8.x)</h2>
+
+<div class="callout callout-blue">
+<strong>No engine pool required.</strong> With Drools, <code>KieBase</code> is thread-safe and shared across all concurrent requests. A lightweight <code>StatelessKieSession</code> is created per calculation (cheap — no blocking queue, no acquisition timeout). Zero-downtime reload uses an <code>AtomicReference&lt;KieBase&gt;</code> swap.
+</div>
+
+<h3>Engine POJO Model</h3>
+<pre><code>// io.promoengine.engine.model — plain Java POJOs, no JAR dependency
+
+@Data @Builder
+public class InvoiceItem {
+    private String sku;
+    private String storeCode;
+    private String categoryCode;
+    private String subcategoryCode;
+    private String departmentCode;
+    private boolean foodItem;
+    private BigDecimal unitPrice;
+    private BigDecimal lineAmount;      // unitPrice × quantity
+    private int quantity;
+}
+
+@Data @Builder
+public class Transaction {
+    private String storeId;
+    private String customerId;
+    private LocalDate transactionDate;
+}
+
+@Data @Builder
+public class Customer {
+    private String customerId;
+    private String customerGroupCode;
+}
+
+@Data @Builder
+public class PromotionResult {
+    private String promotionId;
+    private int promotionType;          // &lt;10 = STANDARD, ≥10 = COUPON
+    private String description;
+    private double timesApplied;
+    private BigDecimal discountAmount;
+    private BigDecimal lineDiscountAmount;
+    private List&lt;String&gt; prerequisites;
+}</code></pre>
+
+<h3>EngineFactBuilder</h3>
+<pre><code>// io.promoengine.engine.EngineFactBuilder
+// Converts EnrichedTransaction → Drools facts. No proprietary classes, no XML.
+
+class EngineFactBuilder {
+    static List&lt;Object&gt; build(EnrichedTransaction tx) {
+        List&lt;Object&gt; facts = new ArrayList&lt;&gt;();
+
+        // Transaction header fact
+        facts.add(Transaction.builder()
+            .storeId(tx.getStoreId())
+            .customerId(tx.getCustomerId())
+            .transactionDate(tx.getTransactionDate())
+            .build());
+
+        // Customer fact (if data resolved from enrichment)
+        if (tx.getCustomerData() != null) {
+            facts.add(Customer.builder()
+                .customerId(tx.getCustomerId())
+                .customerGroupCode(tx.getCustomerData().getGroupCode())
+                .build());
+        }
+
+        // One InvoiceItem fact per enriched line (items with no price are in skippedItems)
+        for (EnrichedItem item : tx.getEnrichedItems()) {
+            facts.add(InvoiceItem.builder()
+                .sku(item.getSku())
+                .storeCode(tx.getStoreId())
+                .categoryCode(item.getCategoryCode())
+                .subcategoryCode(item.getSubcategoryCode())
+                .departmentCode(item.getDepartmentCode())
+                .foodItem(item.isFoodItem())
+                .unitPrice(item.getUnitPrice())
+                .lineAmount(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .quantity(item.getQuantity())
+                .build());
+        }
+        return facts;
+    }
+}</code></pre>
+
+<h3>PromotionRuleEngine</h3>
+<pre><code>// io.promoengine.engine.PromotionRuleEngine
+// One per tenant. KieBase shared safely across concurrent StatelessKieSessions.
+
+@Slf4j
+class PromotionRuleEngine {
+    private final String tenantId;
+    private final AtomicReference&lt;KieBase&gt; kieBaseRef = new AtomicReference&lt;&gt;();
+
+    /** Called at startup and on any rule change. Atomic — in-flight sessions complete normally. */
+    void reload(List&lt;RuleDefinition&gt; rules) {
+        KieServices ks = KieServices.Factory.get();
+        KieFileSystem kfs = ks.newKieFileSystem();
+        for (RuleDefinition r : rules) {
+            kfs.write("src/main/resources/rules/" + r.getPromotionId() + ".drl", r.getRuleBody());
+        }
+        KieBuilder kb = ks.newKieBuilder(kfs).buildAll();
+        if (kb.getResults().hasMessages(Message.Level.ERROR)) {
+            throw new RuleCompilationException(tenantId, kb.getResults().toString());
+        }
+        KieBase newBase = ks.newKieContainer(
+                ks.getRepository().getDefaultReleaseId()).getKieBase();
+        kieBaseRef.set(newBase);   // atomic swap — zero downtime
+        log.info("Rule engine reloaded for tenant={}, rules={}", tenantId, rules.size());
+    }
+
+    /** Thread-safe: StatelessKieSession created per call, discarded after. */
+    CalculationResult calculate(EnrichedTransaction tx) {
+        StatelessKieSession session = kieBaseRef.get().newStatelessKieSession();
+        List&lt;PromotionResult&gt; results = new ArrayList&lt;&gt;();
+        session.setGlobal("results", results);
+        session.execute(EngineFactBuilder.build(tx));
+        return new CalculationResult(results, tx.getSkippedItems());
+    }
+}</code></pre>
+
+<h3>TenantEngineRegistry</h3>
+<pre><code>// io.promoengine.engine.TenantEngineRegistry
+// Holds one PromotionRuleEngine per tenant. Thread-safe.
+
+@Component
+class TenantEngineRegistry {
+    private final ConcurrentHashMap&lt;String, PromotionRuleEngine&gt; registry =
+            new ConcurrentHashMap&lt;&gt;();
+    private final PromotionRuleService ruleService;
+
+    /** Get (or lazily create and load) the engine for a tenant. */
+    PromotionRuleEngine getEngine(String tenantId) {
+        return registry.computeIfAbsent(tenantId, tid -&gt; {
+            PromotionRuleEngine engine = new PromotionRuleEngine(tid);
+            engine.reload(ruleService.getActiveRules(tid));
+            return engine;
+        });
+    }
+
+    /** Trigger reload for one tenant (called after rule CRUD operations). */
+    void reloadTenant(String tenantId) {
+        getEngine(tenantId).reload(ruleService.getActiveRules(tenantId));
+    }
+
+    /** Reload all tenants (admin operation / startup resync). */
+    void reloadAll() {
+        registry.forEach((tid, engine) -&gt;
+                engine.reload(ruleService.getActiveRules(tid)));
+    }
+}</code></pre>
+
+<h3>Maven Dependency (Drools)</h3>
+<pre><code>&lt;!-- Drools 8.x — Apache 2.0, pure Java --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.drools&lt;/groupId&gt;
+    &lt;artifactId&gt;drools-engine&lt;/artifactId&gt;
+    &lt;version&gt;${drools.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.drools&lt;/groupId&gt;
+    &lt;artifactId&gt;drools-compiler&lt;/artifactId&gt;
+    &lt;version&gt;${drools.version}&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;!-- No proprietary JAR. No lib/ directory. --&gt;</code></pre>
+</section>
+
+<!-- ─── 9. ENRICHMENT ─── -->
+<section id="enrichment">
+<h2>9. Data Enrichment Layer</h2>
+
+<h3>Price Lookup — 3-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Query</th><th>On Miss</th></tr>
+  <tr><td>1</td><td>OpenSearch index <code>promoprice</code></td><td>sku + storeId</td><td>Try step 2</td></tr>
+  <tr><td>2</td><td>OpenSearch index <code>promoprice</code></td><td>sku + sentinel store <code>999999</code></td><td>Try step 3</td></tr>
+  <tr><td>3</td><td>Oracle DB (price table)</td><td>item_no + store_code</td><td>Add to <code>skippedItems</code></td></tr>
+</table>
+<p>Steps 1 and 2 run in parallel via <code>CompletableFuture</code>. Step 3 only executes if both OpenSearch queries miss.</p>
+
+<h3>Item Properties — 2-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Data Retrieved</th></tr>
+  <tr><td>1</td><td>OpenSearch index <code>promoitem</code></td><td>subGroupNo, groupNo, deptNo, foodIndicator, custom properties</td></tr>
+  <tr><td>2</td><td>Oracle DB (item property table)</td><td>Same fields — SQL fallback</td></tr>
+</table>
+
+<h3>Customer Data — 2-Step Fallback</h3>
+<table>
+  <tr><th>Step</th><th>Source</th><th>Data Retrieved</th></tr>
+  <tr><td>1</td><td>OpenSearch index <code>promocustomer</code></td><td>customerGroupNo, customerTypeNo, cardTypeNo</td></tr>
+  <tr><td>2</td><td>Oracle DB (customer property table)</td><td>Same fields — SQL fallback</td></tr>
+</table>
+
+<h3>Parallel Enrichment (EnrichmentService)</h3>
+<pre><code>// io.promoengine.enrichment.EnrichmentService
+EnrichedTransaction enrich(CalculateRequest req) {
+    List&lt;String&gt; skus = req.getItems().stream().map(OrderItem::getSku).toList();
+
+    var pricesFuture    = CompletableFuture.supplyAsync(() -> priceRepository.findPrices(skus, req.getStoreId()));
+    var propertiesFuture = CompletableFuture.supplyAsync(() -> itemRepository.findProperties(skus));
+    var customerFuture  = CompletableFuture.supplyAsync(() -> customerRepository.findCustomer(req.getCustomerId()));
+
+    CompletableFuture.allOf(pricesFuture, propertiesFuture, customerFuture).join();
+
+    Map&lt;String, PriceData&gt;        prices     = pricesFuture.join();
+    Map&lt;String, ItemPropertyData&gt; properties = propertiesFuture.join();
+    Optional&lt;CustomerData&gt;        customer   = customerFuture.join();
+
+    List&lt;EnrichedItem&gt; enrichedItems = new ArrayList&lt;&gt;();
+    List&lt;String&gt;       skippedItems  = new ArrayList&lt;&gt;();
+
+    for (OrderItem item : req.getItems()) {
+        if (prices.containsKey(item.getSku())) {
+            enrichedItems.add(EnrichedItem.from(item, prices.get(item.getSku()), properties.get(item.getSku())));
+        } else {
+            skippedItems.add(item.getSku());  // explicit — not silently dropped
+        }
+    }
+
+    return EnrichedTransaction.builder()
+        .storeId(req.getStoreId())
+        .customerId(req.getCustomerId())
+        .transactionDate(req.getTransactionDate())
+        .enrichedItems(enrichedItems)
+        .customerData(customer.orElse(null))
+        .skippedItems(skippedItems)
+        .build();
+}</code></pre>
+</section>
+
+<!-- ─── 10. RULESET ─── -->
+<section id="ruleset">
+<h2>10. Promotion Rule Architecture</h2>
+
+<p>This section covers how promotion rules are defined, stored, loaded into the engine, and managed at runtime. This is a significant redesign from the legacy file-based approach.</p>
+
+<!-- ─── WHAT MMED IS ─── -->
+<h3 id="ruleset-mmed">What the Engine's Rule Format Contains</h3>
+
+<p>The calculation engine reads promotion rules from a structured XML format (the legacy system called this "MMED"). From decompiling the engine JAR, the full schema is:</p>
+
+<pre><code>&lt;Mmed&gt;
+  &lt;metaInformation&gt;
+    &lt;name&gt;Active Promotions v2.1&lt;/name&gt;
+    &lt;description&gt;Seasonal campaign — Q1 2024&lt;/description&gt;
+  &lt;/metaInformation&gt;
+
+  &lt;!-- Presets: named groupings of items/customers used as rule conditions --&gt;
+  &lt;preset&gt;
+    &lt;definitionID&gt;PRESET_ELECTRONICS&lt;/definitionID&gt;
+    &lt;mmedGroup&gt;1&lt;/mmedGroup&gt;        &lt;!-- 1=standard, 2=coupon --&gt;
+    &lt;mmedCode&gt;...MML rule code...&lt;/mmedCode&gt;
+  &lt;/preset&gt;
+
+  &lt;!-- Promotions: actual discount/coupon rules --&gt;
+  &lt;promotion&gt;
+    &lt;definitionID&gt;DEF_BUY2GET10&lt;/definitionID&gt;
+    &lt;promotionID&gt;PROMO_BUY2GET10&lt;/promotionID&gt;
+    &lt;deletePromotion&gt;false&lt;/deletePromotion&gt;
+    &lt;priority&gt;10&lt;/priority&gt;
+    &lt;versionNumber&gt;1.0&lt;/versionNumber&gt;
+    &lt;promotionType&gt;5&lt;/promotionType&gt;    &lt;!-- &lt;10=STANDARD, &gt;=10=COUPON --&gt;
+    &lt;mmedGroup&gt;1&lt;/mmedGroup&gt;
+    &lt;startDate&gt;2024-01-01&lt;/startDate&gt;
+    &lt;endDate&gt;2024-12-31&lt;/endDate&gt;
+    &lt;mmedCode&gt;...MML rule code defining conditions and outcomes...&lt;/mmedCode&gt;
+    &lt;promotionText&gt;
+      &lt;languageCd&gt;EN&lt;/languageCd&gt;
+      &lt;description&gt;Buy 2 electronics — 10% off&lt;/description&gt;
+    &lt;/promotionText&gt;
+    &lt;promotionText&gt;
+      &lt;languageCd&gt;TH&lt;/languageCd&gt;
+      &lt;description&gt;ซื้อ 2 ลด 10%&lt;/description&gt;
+    &lt;/promotionText&gt;
+  &lt;/promotion&gt;
+&lt;/Mmed&gt;</code></pre>
+
+<p>The <code>mmedCode</code> field is the core of each rule — written in the engine's proprietary MML (Marketing Markup Language). It defines conditions (item group, quantity threshold, date range, customer segment) and outcomes (percentage off, fixed amount, free item, coupon). This MML syntax is owned by the engine and cannot be changed without replacing the engine itself.</p>
+
+<div class="callout callout-blue">
+<strong>Critical constraint:</strong> The engine's C++ native layer holds the parsed rules in-process. <code>MmedType</code> must reside in JVM heap during calculations — it cannot live in Redis, a message queue, or any external store during the calculation path. However, the <strong>source of truth</strong> and the <strong>management interface</strong> for rules can and should be fully modernised.
+</div>
+
+<!-- ─── PROBLEMS ─── -->
+<h3 id="ruleset-problems">Problems with the Legacy File-Based Approach</h3>
+
+<table>
+  <tr><th>#</th><th>Problem</th><th>Impact</th></tr>
+  <tr><td>1</td><td><strong>Monolithic file — all-or-nothing</strong>: One rule change requires replacing the entire file and reloading all 20 engine instances</td><td>Any promotion update causes full service interruption</td></tr>
+  <tr><td>2</td><td><strong>No rule versioning</strong>: No history of which version of rules was active at any point in time</td><td>Cannot audit which promotion applied to a past transaction</td></tr>
+  <tr><td>3</td><td><strong>No rollback</strong>: If a bad rule file is deployed, you must manually fix and redeploy</td><td>Promotions wrong in production until manually corrected</td></tr>
+  <tr><td>4</td><td><strong>All engines restart simultaneously</strong>: Full pool drain during reload = zero capacity</td><td>POS terminals queue up or time out during every rule update</td></tr>
+  <tr><td>5</td><td><strong>No rule preview</strong>: Cannot test new rules without activating them in production</td><td>No safe way to validate a promotion before it goes live</td></tr>
+  <tr><td>6</td><td><strong>Source of truth is a disk file</strong>: No database, no audit trail, no multi-tenant isolation</td><td>Incompatible with SaaS model where tenants manage their own promotions</td></tr>
+  <tr><td>7</td><td><strong>No expiry management</strong>: Rules have startDate/endDate but no automated cleanup or notification</td><td>Expired rules accumulate silently, memory grows unbounded</td></tr>
+</table>
+
+<!-- ─── NEW ARCHITECTURE ─── -->
+<h3 id="ruleset-arch">New Architecture — 3 Tiers</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────────────────────┐
+│  TIER 1 — SOURCE OF TRUTH: Database                                 │
+│  promotion_rule table: one row per promotion rule                   │
+│    rule_body column: DRL text (Drools Rule Language)                │
+│  promotion_rule_history: full version history                       │
+│  promotion_preset table: preset definitions                         │
+│                                                                     │
+│  Rule lifecycle:  DRAFT → ACTIVE → INACTIVE (never deleted)         │
+│  S3 is IMPORT ONLY — initial bulk load or migration                 │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │  on startup / on rule change
+                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TIER 2 — COMPILED RULE SET: JVM Heap                               │
+│  PromotionRuleLoader: DB → List&lt;RuleDefinition&gt;                     │
+│  DRL text → KieFileSystem → KieBuilder → KieBase                    │
+│                                                                     │
+│  KieBase: compiled, immutable, thread-safe                          │
+│  Reload: compile new KieBase → AtomicReference.set(newBase)         │
+│    Downtime = 0. In-flight sessions complete with old KieBase.      │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │  one per tenant
+                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  TIER 3 — CALCULATION: TenantEngineRegistry                         │
+│  ConcurrentHashMap&lt;tenantId, PromotionRuleEngine&gt;                   │
+│  Per calculation: session = kieBase.newStatelessKieSession()         │
+│    → session.execute(facts)  → results list populated by DRL rules  │
+│    → session discarded (lightweight, no pooling needed)             │
+└─────────────────────────────────────────────────────────────────────┘</code></pre>
+
+<div class="callout callout-green">
+<strong>Drools advantage:</strong> <code>KieBase</code> is immutable after compilation — completely thread-safe. Any number of concurrent <code>StatelessKieSession</code> instances can run from the same <code>KieBase</code> without synchronization. This eliminates the need for an engine pool entirely.
+</div>
+
+<!-- ─── DB SCHEMA ─── -->
+<h3 id="ruleset-db">Database Schema</h3>
+
+<pre><code>-- Individual promotion rules (one row = one promotion)
+CREATE TABLE promotion_rule (
+    id              VARCHAR2(100)   PRIMARY KEY,        -- promotionId
+    definition_id   VARCHAR2(100)   NOT NULL,
+    tenant_id       VARCHAR2(50)    NOT NULL DEFAULT 'default',  -- SaaS: per-tenant
+    rule_type       VARCHAR2(10)    NOT NULL,            -- STANDARD | COUPON
+    mmed_group      NUMBER(3)       NOT NULL,            -- 1=standard, 2=coupon
+    priority        NUMBER(5)       NOT NULL DEFAULT 10,
+    rule_body       CLOB            NOT NULL,            -- DRL rule text (Drools Rule Language)
+    description     VARCHAR2(4000),                     -- EN description
+    description_i18n CLOB,                              -- JSON: { "TH": "...", "FR": "..." }
+    start_date      DATE,
+    end_date        DATE,
+    status          VARCHAR2(10)    DEFAULT 'DRAFT',     -- DRAFT | ACTIVE | INACTIVE
+    version         NUMBER(5)       DEFAULT 1,
+    created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    created_by      VARCHAR2(100),
+    updated_at      TIMESTAMP,
+    updated_by      VARCHAR2(100)
+);
+
+-- Preset definitions (item/customer groupings used as rule conditions)
+CREATE TABLE promotion_preset (
+    id              VARCHAR2(100)   PRIMARY KEY,
+    tenant_id       VARCHAR2(50)    NOT NULL DEFAULT 'default',
+    mmed_group      NUMBER(3),
+    rule_body       CLOB            NOT NULL,            -- DRL rule text
+    status          VARCHAR2(10)    DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Full audit trail — every version of every rule is preserved
+CREATE TABLE promotion_rule_history (
+    history_id      NUMBER          GENERATED ALWAYS AS IDENTITY,
+    rule_id         VARCHAR2(100)   NOT NULL,
+    version         NUMBER(5)       NOT NULL,
+    rule_body       CLOB            NOT NULL,            -- DRL rule text
+    status          VARCHAR2(10),
+    changed_at      TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR2(100),
+    change_reason   VARCHAR2(500),
+    PRIMARY KEY (history_id)
+);</code></pre>
+
+<h4>Rule Lifecycle States</h4>
+<table>
+  <tr><th>State</th><th>Meaning</th><th>In Engine?</th></tr>
+  <tr><td><code>DRAFT</code></td><td>Created but not yet active. Can be tested via dry-run API.</td><td>No</td></tr>
+  <tr><td><code>ACTIVE</code></td><td>Loaded into engine pool. Applied to all calculations.</td><td>Yes</td></tr>
+  <tr><td><code>INACTIVE</code></td><td>Deactivated. Removed from engine. Preserved in DB for audit.</td><td>No</td></tr>
+</table>
+
+<!-- ─── ENGINE LOADING ─── -->
+<h3 id="ruleset-engine">How Rules Are Loaded Into the Engine</h3>
+
+<p>Rules are read from the DB as <code>promotion_rule</code> records, each carrying a <code>rule_body</code> field containing DRL text. The <code>PromotionRuleLoader</code> compiles them into a <code>KieBase</code> and passes it to the <code>PromotionRuleEngine</code> for the tenant.</p>
+
+<pre><code>// PromotionRuleLoader — called at startup and on any rule status change
+
+List&lt;RuleDefinition&gt; loadActiveRules(String tenantId) {
+    return ruleRepository
+        .findByTenantIdAndStatusAndDateRange(tenantId, "ACTIVE", LocalDate.now())
+        .stream()
+        .map(r -&gt; RuleDefinition.builder()
+            .promotionId(r.getPromotionId())
+            .ruleBody(r.getRuleBody())     // DRL text stored in DB (replaces MML/mmedCode)
+            .priority(r.getPriority())
+            .build())
+        .toList();
+}
+
+// Activating a rule — trigger engine reload for tenant
+void activateRule(PromotionRuleEntity rule) {
+    rule.setStatus("ACTIVE");
+    rule.setActivatedAt(LocalDateTime.now());
+    ruleRepository.save(rule);
+    historyRepository.save(buildHistory(rule, "ACTIVATED"));
+    tenantEngineRegistry.reloadTenant(rule.getTenantId());  // atomic KieBase swap
+}
+
+// Deactivating a rule — trigger engine reload for tenant
+void deactivateRule(PromotionRuleEntity rule) {
+    rule.setStatus("INACTIVE");
+    ruleRepository.save(rule);
+    historyRepository.save(buildHistory(rule, "DEACTIVATED"));
+    tenantEngineRegistry.reloadTenant(rule.getTenantId());  // atomic KieBase swap
+}</code></pre>
+
+<!-- ─── RELOAD ─── -->
+<h3 id="ruleset-reload">Zero-Downtime Reload — AtomicReference Swap</h3>
+
+<p>With Drools, there is no engine pool to drain. Reload is handled by building a new <code>KieBase</code> from the updated DB rules and atomically swapping the reference. In-flight <code>StatelessKieSession</code> instances complete normally with the old <code>KieBase</code>, which is then garbage-collected.</p>
+
+<pre><code>// PromotionRuleEngine.reload() — called by TenantEngineRegistry on any rule change
+// In-flight calculations: continue with old KieBase (held in local variable in calculate())
+// New calculations after swap: use new KieBase immediately
+// Downtime: 0ms (no blocking, no pool drain, no queue wait)
+
+void reload(List&lt;RuleDefinition&gt; rules) {
+    KieBase newBase = compile(rules);     // build + validate DRL — may take 100–500ms
+    kieBaseRef.set(newBase);             // atomic swap — never blocks callers
+    log.info("[{}] Rules reloaded: {} active rules", tenantId, rules.size());
+}
+
+// calculate() always snapshots the reference first
+CalculationResult calculate(EnrichedTransaction tx) {
+    KieBase base = kieBaseRef.get();     // snapshot — reload-safe
+    StatelessKieSession session = base.newStatelessKieSession();
+    List&lt;PromotionResult&gt; results = new ArrayList&lt;&gt;();
+    session.setGlobal("results", results);
+    session.execute(EngineFactBuilder.build(tx));
+    return new CalculationResult(results, tx.getSkippedItems());
+    // session discarded — base reference released — eligible for GC if swapped
+}</code></pre>
+
+<div class="callout callout-green">
+<strong>True zero downtime:</strong> Unlike the legacy pool-drain approach (19 engines serving, 1 reloading), Drools reload never blocks any calculation. All concurrent requests continue uninterrupted throughout the reload. Reload time = DRL compilation time only (~200ms for typical rule sets).
+</div>
+
+<h3>Bulk Import from S3 (migration / backwards compatibility)</h3>
+<p>The legacy MMED XML file upload endpoint is preserved as a <strong>one-time migration tool only</strong>. When called, PromoEngine parses the XML using a custom <code>MmedXmlParser</code> (JAXB — isolated to the import module only), extracts <code>&lt;promotion&gt;</code> elements, and for each one creates a <code>promotion_rule</code> DB row with a <strong>converted DRL body</strong>. A <code>MmlToDrlConverter</code> handles the translation of legacy MML expressions to equivalent DRL. Once imported to DB, the file is discarded and the DB is the sole source of truth.</p>
+
+<h3>Multi-Tenancy Support</h3>
+<table>
+  <tr><th>Concern</th><th>Design</th></tr>
+  <tr><td>Rule isolation</td><td><code>tenant_id</code> column on all rule tables. API key maps to tenant.</td></tr>
+  <tr><td>Engine isolation</td><td><code>TenantEngineRegistry</code> holds one <code>PromotionRuleEngine</code> per tenant — each with its own compiled <code>KieBase</code></td></tr>
+  <tr><td>Rule CRUD scope</td><td>API operations are scoped to the authenticated tenant automatically — no cross-tenant access possible</td></tr>
+  <tr><td>V1 scope</td><td><strong>Full multi-tenant from day one.</strong> API key maps to tenant. Each tenant gets isolated rule set and engine instance. <code>TenantEngineRegistry</code> is the central registry.</td></tr>
+</table>
+
+<h3>Old vs New Summary</h3>
+<table>
+  <tr><th>Concern</th><th class="del">Legacy (File-Based)</th><th class="add">PromoEngine (DB-Backed)</th></tr>
+  <tr><td>Source of truth</td><td class="del">File on disk / S3</td><td class="add">Oracle DB — versioned, auditable</td></tr>
+  <tr><td>Granularity</td><td class="del">Monolithic XML file (all rules or none)</td><td class="add">Individual rule records — add/remove per rule</td></tr>
+  <tr><td>Rule versioning</td><td class="del">None</td><td class="add">Full history table per rule</td></tr>
+  <tr><td>Rollback</td><td class="del">Manual file replacement</td><td class="add"><code>POST /api/v1/rules/{id}/rollback?version=N</code></td></tr>
+  <tr><td>Preview / dry-run</td><td class="del">Not possible</td><td class="add">DRAFT status + <code>POST /api/v1/rules/{id}/test</code></td></tr>
+  <tr><td>Reload impact</td><td class="del">All 20 engines down simultaneously</td><td class="add">Rolling reload — one engine at a time, zero downtime</td></tr>
+  <tr><td>Rule add</td><td class="del">Edit XML + full file reload</td><td class="add"><code>POST /api/v1/rules</code> → pushed to engines in &lt;1s</td></tr>
+  <tr><td>S3 role</td><td class="del">Primary source of truth</td><td class="add">Bulk import only (initial load / migration)</td></tr>
+  <tr><td>Multi-tenancy</td><td class="del">Impossible</td><td class="add">tenant_id column, per-tenant engine pool</td></tr>
+  <tr><td>Expired rules</td><td class="del">Silently accumulate in memory</td><td class="add">Scheduled job auto-deactivates past end_date</td></tr>
+  <tr><td>Audit trail</td><td class="del">None</td><td class="add">promotion_rule_history: every change, who, when, why</td></tr>
+</table>
+</section>
+
+<!-- ─── 11. CONFIG ─── -->
+<section id="config">
+<h2>11. Configuration</h2>
+
+<pre><code>server:
+  port: 8080
+  servlet:
+    context-path: ${PE_CONTEXT_PATH:/promotionengine/api}
+    # New default: /promotionengine/api
+    # For zero-downtime cutover from legacy, set PE_CONTEXT_PATH=/promotionservice/calculateinvoicecore
+    # Clients can also be migrated gradually using an API gateway path alias
+
+spring:
+  application:
+    name: promoengine-service
+  datasource:
+    url: ${PE_DB_URL}
+    username: ${PE_DB_USERNAME}
+    password: ${PE_DB_PASSWORD}
+    driver-class-name: ${PE_DB_DRIVER:oracle.jdbc.OracleDriver}
+    hikari:
+      minimum-idle: ${PE_DB_MIN_IDLE:2}
+      maximum-pool-size: ${PE_DB_MAX_POOL:10}
+  elasticsearch:
+    uris: ${PE_OPENSEARCH_URI}
+    username: ${PE_OPENSEARCH_USERNAME}
+    password: ${PE_OPENSEARCH_PASSWORD}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+promoengine:
+  engine:
+    max-instances: ${PE_ENGINE_MAX_INSTANCES:20}
+    acquire-timeout-ms: ${PE_ENGINE_TIMEOUT_MS:3000}
+    debug-level: ${PE_ENGINE_DEBUG:0}
+    nbr-decimals: ${PE_ENGINE_DECIMALS:2}
+
+  rules:
+    # S3 is import-only — used for initial bulk load or migration, not ongoing
+    s3-bucket: ${PE_S3_BUCKET:}
+    s3-key: ${PE_S3_KEY:ruleset/ruleset.xml}
+    # Scheduled expiry check (cron: every night at 02:00)
+    expiry-cron: ${PE_EXPIRY_CRON:0 0 2 * * *}
+    # Max time to compile a KieBase before timeout (DRL compilation)
+    compile-timeout-ms: ${PE_RULE_COMPILE_TIMEOUT_MS:10000}
+
+  tenancy:
+    # Multi-tenant from day one. API key maps to tenantId.
+    # Single-tenant deployments: set PE_DEFAULT_TENANT=default and issue one API key.
+    default-tenant-id: ${PE_DEFAULT_TENANT:default}
+    enabled: ${PE_MULTI_TENANT:true}
+
+  drools:
+    version: ${PE_DROOLS_VERSION:8.44.0.Final}
+    # DRL files compiled in-memory from DB — no classpath DRL files needed
+
+  security:
+    api-key: ${PE_API_KEY:change-me}
+    header-name: X-API-Key
+
+  s3:
+    region: ${PE_AWS_REGION:ap-southeast-1}
+
+  data:
+    price-index: ${PE_PRICE_INDEX:promoprice}
+    item-index: ${PE_ITEM_INDEX:promoitem}
+    customer-index: ${PE_CUSTOMER_INDEX:promocustomer}
+
+logging:
+  level:
+    io.promoengine: ${PE_LOG_LEVEL:INFO}</code></pre>
+
+<p>All environment variables are prefixed <code>PE_</code> (PromoEngine). No legacy prefixes (<code>RM3PS_</code>, <code>SERVLET2_</code>, etc.) exist anywhere.</p>
+</section>
+
+<!-- ─── 12. ENDPOINTS ─── -->
+<section id="endpoints">
+<h2>12. Endpoints</h2>
+
+<h3>Calculation</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th><th>Response</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/promotions/calculate</code></td><td>X-API-Key</td><td>Calculate promotions for a full transaction</td><td>200 / 206 CalculateResponse</td></tr>
+</table>
+
+<h3>Promotion Rule Management (CRUD)</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th><th>Response</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules</code></td><td>X-API-Key</td><td>Create a new promotion rule (created in DRAFT status)</td><td>201 PromotionRuleResponse</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/rules</code></td><td>X-API-Key</td><td>List all rules — filterable by status, type, date, page</td><td>200 Page&lt;PromotionRuleResponse&gt;</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/rules/{id}</code></td><td>X-API-Key</td><td>Get a single rule by ID</td><td>200 PromotionRuleResponse</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/v1/rules/{id}</code></td><td>X-API-Key</td><td>Update rule (creates new version in history, resets to DRAFT)</td><td>200 PromotionRuleResponse</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/{id}/activate</code></td><td>X-API-Key</td><td>Activate a DRAFT rule — pushes to engine pool via rolling update</td><td>200 PromotionRuleResponse</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/{id}/deactivate</code></td><td>X-API-Key</td><td>Deactivate an ACTIVE rule — removes from engine pool</td><td>200 PromotionRuleResponse</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/{id}/rollback</code></td><td>X-API-Key</td><td>Rollback to a previous version (body: <code>{ "version": N }</code>)</td><td>200 PromotionRuleResponse</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/{id}/test</code></td><td>X-API-Key</td><td>Dry-run: test DRAFT rule against a sample CalculateRequest without activating</td><td>200 CalculateResponse</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/rules/{id}/history</code></td><td>X-API-Key</td><td>Version history of a rule</td><td>200 List&lt;RuleHistoryResponse&gt;</td></tr>
+</table>
+
+<h3>Preset Management</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th><th>Response</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/presets</code></td><td>X-API-Key</td><td>Create a preset (item/customer grouping used as rule condition)</td><td>201 PresetResponse</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/presets</code></td><td>X-API-Key</td><td>List all presets</td><td>200 List&lt;PresetResponse&gt;</td></tr>
+  <tr><td><code>PUT</code></td><td><code>/api/v1/presets/{id}</code></td><td>X-API-Key</td><td>Update a preset</td><td>200 PresetResponse</td></tr>
+  <tr><td><code>DELETE</code></td><td><code>/api/v1/presets/{id}</code></td><td>X-API-Key</td><td>Deactivate a preset</td><td>200 PresetResponse</td></tr>
+</table>
+
+<h3>Bulk Import (Backwards Compatibility)</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th><th>Response</th></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/import</code></td><td>X-API-Key</td><td>Bulk import from legacy rule file (multipart XML). Parses file → writes individual rows to DB → rolling engine reload</td><td>200 ImportResponse</td></tr>
+  <tr><td><code>POST</code></td><td><code>/api/v1/rules/import/s3</code></td><td>X-API-Key</td><td>Trigger bulk import from configured S3 path</td><td>200 ImportResponse</td></tr>
+</table>
+
+<h3>System</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th><th>Response</th></tr>
+  <tr><td><code>GET</code></td><td><code>/api/v1/version</code></td><td>X-API-Key</td><td>Engine version info</td><td>200 VersionResponse</td></tr>
+  <tr><td><code>GET</code></td><td><code>/actuator/health</code></td><td>None</td><td>Kubernetes liveness / readiness probe</td><td>200 UP / 503 DOWN</td></tr>
+</table>
+
+<h3>Rule Management Request / Response Shapes</h3>
+<pre><code>// POST /api/v1/rules — Create rule
+{
+  "promotionId": "PROMO_BUY2GET10",
+  "definitionId": "DEF_BUY2GET10",
+  "ruleType": "STANDARD",           // STANDARD | COUPON
+  "priority": 10,
+  "mmlCode": "...MML rule body...", // the actual promotion logic
+  "description": "Buy 2 electronics — 10% off",
+  "descriptionI18n": { "TH": "ซื้อ 2 ลด 10%" },
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31"
+}
+
+// Response
+{
+  "id": "PROMO_BUY2GET10",
+  "ruleType": "STANDARD",
+  "status": "DRAFT",
+  "version": 1,
+  "createdAt": "2024-01-10T09:00:00Z",
+  "createdBy": "api-key-owner"
+}
+
+// GET /api/v1/rules?status=ACTIVE&type=STANDARD&page=0&size=20
+{
+  "content": [ ... ],
+  "totalElements": 45,
+  "totalPages": 3,
+  "page": 0,
+  "size": 20
+}
+
+// POST /api/v1/rules/{id}/test — dry-run (same as calculate request)
+{
+  "storeId": "0101",
+  "customerId": 0,
+  "transactionDate": "2024-01-15",
+  "items": [ { "sku": "12345678", "quantity": 2 } ]
+}
+// Returns a CalculateResponse showing what this DRAFT rule would produce</code></pre>
+</section>
+
+<!-- ─── 13. ERRORS ─── -->
+<section id="errors">
+<h2>13. Error Handling</h2>
+<table>
+  <tr><th>Scenario</th><th>Exception</th><th>HTTP</th><th>errorCode</th></tr>
+  <tr><td>Invalid JSON request (missing storeId, empty items, etc.)</td><td><code>MethodArgumentNotValidException</code></td><td>400</td><td>4</td></tr>
+  <tr><td>Rule set file is invalid or corrupt</td><td><code>RuleSetException(14)</code></td><td>422</td><td>14</td></tr>
+  <tr><td>Rule set has insufficient data</td><td><code>RuleSetException(16)</code></td><td>400</td><td>16</td></tr>
+  <tr><td>All engine instances busy (pool timeout)</td><td><code>EngineTimeoutException</code></td><td>503</td><td>32</td></tr>
+  <tr><td>Engine failed to initialise on startup</td><td><code>EngineInitException</code></td><td>500</td><td>41</td></tr>
+  <tr><td>Price / item / customer lookup failure</td><td><code>EnrichmentException</code></td><td>500</td><td>50</td></tr>
+  <tr><td>Any other unexpected error</td><td><code>Exception</code> (catch-all)</td><td>500</td><td>99</td></tr>
+</table>
+
+<h3>Standard Error Response Shape</h3>
+<pre><code>{
+  "errorCode": 32,
+  "message": "All promotion engine instances are busy. Please retry in a moment."
+}</code></pre>
+</section>
+
+<!-- ─── 14. IMPL ORDER ─── -->
+<section id="impl-order">
+<h2>14. Implementation Order</h2>
+<p>17 steps. Each step is independently buildable and testable before the next starts.</p>
+
+<div class="step"><span class="step-num">1</span><h3>Clean Scaffold</h3>
+<p>Delete all previously created scaffolding (wrong package, wrong names). Create <code>pom.xml</code> (groupId=<code>io.promoengine</code>, artifactId=<code>promoengine-service</code>, Drools 8.x dependencies), <code>application.yml</code> (prefix=<code>promoengine</code>), <code>PromoEngineApplication.java</code>, <code>PromoEngineProperties.java</code>. <strong>No proprietary JAR — no <code>lib/</code> directory.</strong> Verify: <code>mvn spring-boot:run</code> starts without error.</p></div>
+
+<div class="step"><span class="step-num">2</span><h3>Exception Classes</h3>
+<p><code>RuleCompilationException</code> (DRL has syntax errors — 422), <code>EngineInitException</code> (Drools init failed — 500), <code>RuleSetException</code> (with errorCode field), <code>EnrichmentException</code>, <code>TenantNotFoundException</code>.</p></div>
+
+<div class="step"><span class="step-num">3</span><h3>Internal Calculation Result Models</h3>
+<p><code>CalculationResult</code>, <code>LineCalculationResult</code>, <code>PromotionCalculationResult</code>. Pure Java POJOs. Zero XML, zero JAXB, zero external dependency.</p></div>
+
+<div class="step"><span class="step-num">4</span><h3>JPA Entities</h3>
+<p><strong>Enrichment (Oracle DB fallback):</strong> JPA entity classes for price table, item property table, customer property table. Spring Data JPA repositories.<br><br>
+<strong>Promotion rules (source of truth):</strong> <code>PromotionRuleEntity</code> (<code>promotion_rule</code> table), <code>PromotionPresetEntity</code> (<code>promotion_preset</code> table), <code>PromotionRuleHistoryEntity</code> (<code>promotion_rule_history</code> table). Repositories: <code>PromotionRuleRepository</code> (with <code>findByTenantIdAndStatusAndDateRange</code>), <code>PromotionRuleHistoryRepository</code>.</p></div>
+
+<div class="step"><span class="step-num">5</span><h3>OpenSearch Document Models</h3>
+<p><code>PriceDocument</code> (<code>@Document(indexName="${promoengine.data.price-index}")</code>), <code>ItemDocument</code>, <code>CustomerDocument</code>. Spring Data Elasticsearch.</p></div>
+
+<div class="step"><span class="step-num">6</span><h3>Engine Layer — Most Critical (Drools)</h3>
+<p><strong>POJOs:</strong> <code>InvoiceItem</code>, <code>Transaction</code>, <code>Customer</code>, <code>PromotionResult</code> (no JAR dependency).<br>
+<strong>EngineFactBuilder:</strong> converts <code>EnrichedTransaction</code> → Drools fact list. Zero proprietary classes.<br>
+<strong>PromotionRuleEngine:</strong> holds <code>AtomicReference&lt;KieBase&gt;</code>, exposes <code>calculate()</code> and <code>reload()</code>.<br>
+<strong>TenantEngineRegistry:</strong> <code>ConcurrentHashMap&lt;tenantId, PromotionRuleEngine&gt;</code> — one engine per tenant.<br>
+<strong>RuleCompilationException:</strong> thrown when DRL text has errors (exposed to rule-CRUD caller).<br>
+Unit test: write a sample DRL rule, load it, run calculate(), assert <code>PromotionResult</code> fields.</p></div>
+
+<div class="step"><span class="step-num">7</span><h3>Promotion Rule Management Layer</h3>
+<p><strong>Rule loading:</strong> <code>PromotionRuleLoader</code> — reads active rules from DB → returns <code>List&lt;RuleDefinition&gt;</code> (each with DRL <code>ruleBody</code>). No XML, no MML.</p>
+<p><strong>Rule service:</strong> <code>PromotionRuleService</code> — full CRUD (create, activate, deactivate, rollback, dry-run test). On activate/deactivate: update DB, call <code>tenantEngineRegistry.reloadTenant()</code> → atomic <code>KieBase</code> swap.</p>
+<p><strong>DRL validation:</strong> on rule create/update, compile a test <code>KieBase</code> from the submitted DRL. Reject with <code>422 Unprocessable Entity</code> if DRL has errors. Rules always validated before persisting.</p>
+<p><strong>Scheduled expiry:</strong> <code>@Scheduled</code> job runs nightly — finds rules where <code>end_date &lt; today AND status = 'ACTIVE'</code> → deactivates and triggers reload.</p>
+<p><strong>Bulk import:</strong> <code>S3RuleImporter</code> (AWS SDK v2) + <code>MmedXmlParser</code> + <code>MmlToDrlConverter</code> — parses legacy MMED XML, converts MML → DRL, inserts as <code>promotion_rule</code> rows in DB, triggers tenant reload. S3 is import-only.</p></div>
+
+<div class="step"><span class="step-num">8</span><h3>Enrichment Repositories</h3>
+<p>Price: <code>OpenSearchPriceRepository</code> (3-step fallback: store → sentinel 999999 → DB) + <code>DatabasePriceRepository</code>. Item: <code>OpenSearchItemRepository</code> + <code>DatabaseItemRepository</code>. Customer: <code>OpenSearchCustomerRepository</code> + <code>DatabaseCustomerRepository</code>.</p></div>
+
+<div class="step"><span class="step-num">9</span><h3>EnrichmentService</h3>
+<p>Parallel <code>CompletableFuture</code> orchestrator. Assembles <code>EnrichedTransaction</code>. Items with no resolved price go into <code>skippedItems</code> list (explicit, not silent).</p></div>
+
+<div class="step"><span class="step-num">10</span><h3>Request / Response DTOs</h3>
+<p><code>CalculateRequest</code> + <code>OrderItem</code> with Bean Validation (<code>@NotBlank</code>, <code>@NotEmpty</code>, <code>@Min(1)</code>). <code>CalculateResponse</code>, <code>OrderSummary</code>, <code>CalculatedItem</code>, <code>AppliedPromotion</code>, <code>PromotionResult</code>, <code>ErrorResponse</code>.</p></div>
+
+<div class="step"><span class="step-num">11</span><h3>PromotionResponseMapper</h3>
+<p>Maps <code>CalculationResult</code> + <code>EnrichedTransaction</code> → <code>CalculateResponse</code>. Logic: subtotal = Σ(line amounts), totalDiscount = Σ(promotion discounts after distribution), total = subtotal − totalDiscount. Per line: standardDiscount (promotionType&lt;10), couponDiscount (≥10), finalAmount. Rounds all monetary values to 3 decimal places. Maps promotionType to <code>"STANDARD"</code> or <code>"COUPON"</code>.</p></div>
+
+<div class="step"><span class="step-num">12</span><h3>PromotionService</h3>
+<p>Main orchestrator. Resolves tenant from API key → calls <code>EnrichmentService.enrich()</code> → calls <code>TenantEngineRegistry.getEngine(tenantId).calculate(tx)</code> → calls <code>PromotionResponseMapper.toResponse()</code>. No pool acquisition or release — <code>StatelessKieSession</code> is created and discarded inside <code>calculate()</code>. Returns <code>ResponseEntity</code> with status 200 or 206 depending on <code>skippedItems</code>.</p></div>
+
+<div class="step"><span class="step-num">13</span><h3>Controllers</h3>
+<p><code>PromotionController</code> — <code>POST /api/v1/promotions/calculate</code>.<br>
+<code>PromotionRuleController</code> — full CRUD: create, list, get, update, activate, deactivate, rollback, test, history.<br>
+<code>PromotionPresetController</code> — preset CRUD.<br>
+<code>RuleImportController</code> — bulk import from file upload or S3.<br>
+<code>VersionController</code> — <code>GET /api/v1/version</code>.</p></div>
+
+<div class="step"><span class="step-num">14</span><h3>Security</h3>
+<p><code>ApiKeyAuthFilter</code> — reads <code>X-API-Key</code> header, returns 401 if wrong or missing. <code>SecurityConfig</code> — stateless, CSRF off, <code>/actuator/health</code> whitelisted.</p></div>
+
+<div class="step"><span class="step-num">15</span><h3>GlobalExceptionHandler</h3>
+<p><code>@RestControllerAdvice</code>. Catches all exceptions, maps to <code>ErrorResponse</code> per the error table. Logs full stack trace for 500s, compact message for 4xx.</p></div>
+
+<div class="step"><span class="step-num">16</span><h3>Tests</h3>
+<p>Unit tests: <code>EnginePoolTest</code>, <code>PromotionResponseMapperTest</code>, <code>EnrichmentServiceTest</code>, <code>EngineItemBuilderTest</code>. Integration test: <code>PromotionControllerIT</code> with mock engine adapter and mock repositories. One happy-path test with a real rule set file validating correct discount calculation.</p></div>
+
+<div class="step"><span class="step-num">17</span><h3>Dockerfile + docker-compose</h3>
+<p>Multi-stage Dockerfile: Maven build stage + JRE 17 runtime stage. <code>COPY lib/*.jar</code> into image. <code>HEALTHCHECK</code> via <code>/actuator/health</code>. <code>docker-compose.yml</code> for local dev with OpenSearch + Oracle mock.</p></div>
+</section>
+
+<!-- ─── 15. DROPPED ─── -->
+<section id="not-carried">
+<h2>15. What Is Dropped — Not Carried Forward</h2>
+<table>
+  <tr><th>Item</th><th>Reason</th></tr>
+  <tr><td>Proprietary engine JAR (<code>RM3E-3.5.0.jar</code>)</td><td>Replaced by Drools 8.x (Apache 2.0, pure Java, container-native)</td></tr>
+  <tr><td>JNI / native C++ code inside JAR</td><td>Platform-specific binary — cannot be containerised for cloud; eliminated</td></tr>
+  <tr><td>MML (Marketing Markup Language)</td><td>Proprietary rule DSL — replaced by DRL (Drools Rule Language), open standard</td></tr>
+  <tr><td>Engine pool (ArrayBlockingQueue of N instances)</td><td>Drools KieBase is thread-safe — no pool needed; TenantEngineRegistry holds one engine per tenant</td></tr>
+  <tr><td><code>RM3Interface</code>, <code>RM3CallBack</code>, <code>RM3Item</code>, <code>RM3PromoResult</code>, <code>RM3PromoDef</code></td><td>Proprietary engine API — replaced by Drools API + clean POJOs (InvoiceItem, Transaction, Customer, PromotionResult)</td></tr>
+  <tr><td>High-level XML simulator class (RM3S)</td><td>Replaced entirely — Drools handles rule evaluation without XML</td></tr>
+  <tr><td>RPSD XML request/response format</td><td>Entirely eliminated — internal calculation uses Java POJOs</td></tr>
+  <tr><td>All JAXB classes (InvoiceRequest, Invoice, Rpsd, ServletRequest)</td><td>No XML in transaction path — Java POJOs only</td></tr>
+  <tr><td>JAXBUtil (marshal / unmarshal / namespace manipulation)</td><td>No marshalling needed — direct Java API</td></tr>
+  <tr><td>Transformer.java (Rpsd → Invoice XML mapping)</td><td>Replaced by PromotionResponseMapper (Java POJOs only)</td></tr>
+  <tr><td>SOAP envelope wrapping / namespace stripping</td><td>No SOAP anywhere in the new service</td></tr>
+  <tr><td>HTTP call from one service to another</td><td>Engine runs in-JVM — no internal HTTP</td></tr>
+  <tr><td>Comparator service / shadow engine routing</td><td>Testing infrastructure — removed, not core product</td></tr>
+  <tr><td>Spin-loop semaphore pool (Thread.sleep × 300)</td><td>Replaced by Drools thread-safe KieBase — no pool acquisition, no timeouts needed</td></tr>
+  <tr><td>Silent item drop (no-price articles)</td><td>Now explicit via skippedItems[] in response</td></tr>
+  <tr><td>Tomcat 7 WAR packaging, web.xml</td><td>Spring Boot JAR, embedded Tomcat 10, application.yml</td></tr>
+  <tr><td>Any class, package, config key, or index name containing rm3, RM3, makro, capgemini</td><td>PromoEngine is a new product — no legacy naming</td></tr>
+</table>
+</section>
+
+<!-- ─── 16. DECISIONS ─── -->
+<section id="questions">
+<h2>16. Confirmed Decisions</h2>
+<table>
+  <tr><th>#</th><th>Decision</th><th>Confirmed Answer</th></tr>
+  <tr>
+    <td>D1</td>
+    <td><strong>Product brand name</strong></td>
+    <td><span class="tag tag-green">PromoEngine</span> — package <code>io.promoengine</code>, Maven <code>promoengine-service</code>, config prefix <code>promoengine</code>, env prefix <code>PE_</code></td>
+  </tr>
+  <tr>
+    <td>D2</td>
+    <td><strong>Context path</strong></td>
+    <td><span class="tag tag-green">New path + configurable</span> — Default: <code>/promotionengine/api</code>. Override via <code>PE_CONTEXT_PATH</code> env var (e.g. set to legacy path for zero-downtime cutover).</td>
+  </tr>
+  <tr>
+    <td>D3</td>
+    <td><strong>Engine JAR replacement</strong></td>
+    <td><span class="tag tag-green">Full JAR replacement required</span> — Proprietary JNI/C++ JAR replaced by <strong>Drools 8.x</strong> (Apache 2.0, pure Java, container-native). MML replaced by DRL. No <code>lib/</code> directory in new service.</td>
+  </tr>
+  <tr>
+    <td>D4</td>
+    <td><strong>OpenSearch index names</strong></td>
+    <td><span class="tag tag-green">Migrate immediately</span> — Use <code>promoprice</code>, <code>promoitem</code>, <code>promocustomer</code> from day one. Configurable via <code>PE_PRICE_INDEX</code>, <code>PE_ITEM_INDEX</code>, <code>PE_CUSTOMER_INDEX</code>.</td>
+  </tr>
+  <tr>
+    <td>D5</td>
+    <td><strong>Partial results (skippedItems)</strong></td>
+    <td><span class="tag tag-green">206 Partial Content</span> — When <code>skippedItems[]</code> is non-empty, return HTTP 206. Full result returns 200.</td>
+  </tr>
+  <tr>
+    <td>D6</td>
+    <td><strong>Multi-tenancy</strong></td>
+    <td><span class="tag tag-green">Full multi-tenant from day one</span> — API key maps to tenant. Per-tenant rule sets, DB rows, and <code>PromotionRuleEngine</code> instances. <code>TenantEngineRegistry</code> manages all tenant engines.</td>
+  </tr>
+</table>
+
+<hr>
+<div class="callout callout-green" style="margin-top:32px;">
+<strong>All decisions confirmed.</strong> The next step is to create <code>CLAUDE.md</code> with precise implementation instructions, then begin 17-step implementation.
+</div>
+</section>
+
+</main>
+
+<script>
+const sections=document.querySelectorAll('section[id]');
+const links=document.querySelectorAll('nav a');
+window.addEventListener('scroll',()=>{
+  let cur='';
+  sections.forEach(s=>{if(window.scrollY>=s.offsetTop-80)cur=s.id;});
+  links.forEach(l=>l.classList.toggle('active',l.getAttribute('href')==='#'+cur));
+});
+</script>
+</body>
+</html>

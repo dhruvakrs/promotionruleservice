@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rm3-promotion-service — Merged Architecture Blueprint</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #1c2230;
+    --border: #30363d; --accent: #58a6ff; --accent2: #3fb950;
+    --accent3: #f0883e; --accent4: #ff7b72; --accent5: #d2a8ff;
+    --text: #c9d1d9; --text-dim: #8b949e; --text-bright: #f0f6fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .toc-sidebar { position: fixed; top: 0; left: 0; width: 240px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 20px 0; z-index: 100; }
+  .toc-sidebar h3 { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 0 16px 8px; }
+  .toc-sidebar a { display: block; padding: 4px 16px; color: var(--text-dim); text-decoration: none; font-size: 12px; border-left: 2px solid transparent; transition: all .15s; }
+  .toc-sidebar a:hover, .toc-sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,.06); }
+  .toc-sidebar .toc-sub { padding-left: 28px; font-size: 11px; }
+  main { margin-left: 240px; padding: 40px 48px; max-width: 1100px; }
+  h1 { font-size: 28px; color: var(--text-bright); margin-bottom: 8px; }
+  h2 { font-size: 20px; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin: 48px 0 20px; scroll-margin-top: 20px; }
+  h3 { font-size: 15px; color: var(--accent5); margin: 28px 0 12px; scroll-margin-top: 20px; }
+  h4 { font-size: 13px; color: var(--accent3); margin: 18px 0 8px; }
+  p { margin-bottom: 12px; }
+  .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 32px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  .badge-red { background: rgba(255,123,114,.15); color: var(--accent4); border: 1px solid rgba(255,123,114,.3); }
+  .badge-green { background: rgba(63,185,80,.15); color: var(--accent2); border: 1px solid rgba(63,185,80,.3); }
+  .badge-blue { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+  .badge-orange { background: rgba(240,136,62,.15); color: var(--accent3); border: 1px solid rgba(240,136,62,.3); }
+  .badge-purple { background: rgba(210,168,255,.15); color: var(--accent5); border: 1px solid rgba(210,168,255,.3); }
+  pre, code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+  code { background: var(--surface2); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--accent3); }
+  pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; margin: 12px 0 20px; line-height: 1.5; }
+  pre .comment { color: #6e7681; }
+  pre .keyword { color: var(--accent5); }
+  pre .type { color: var(--accent); }
+  pre .string { color: var(--accent2); }
+  pre .number { color: var(--accent3); }
+  pre .field { color: #79c0ff; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: var(--surface2); color: var(--text-bright); padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .callout { border-left: 3px solid; border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 16px 0; }
+  .callout-info { border-color: var(--accent); background: rgba(88,166,255,.07); }
+  .callout-warn { border-color: var(--accent3); background: rgba(240,136,62,.07); }
+  .callout-danger { border-color: var(--accent4); background: rgba(255,123,114,.07); }
+  .callout-success { border-color: var(--accent2); background: rgba(63,185,80,.07); }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .flow-box { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .flow-node { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 130px; text-align: center; }
+  .flow-node.client { border-color: var(--accent3); }
+  .flow-node.service { border-color: var(--accent); }
+  .flow-node.engine { border-color: var(--accent5); }
+  .flow-node.data { border-color: var(--accent2); }
+  .flow-node .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+  .flow-node .name { font-size: 13px; color: var(--text-bright); font-weight: 600; margin-top: 2px; }
+  .arrow { color: var(--text-dim); font-size: 20px; line-height: 46px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card h4 { margin-top: 0; }
+  .card ul { padding-left: 18px; }
+  .card ul li { margin-bottom: 4px; font-size: 12px; color: var(--text); }
+  .step-list { counter-reset: steps; }
+  .step-item { counter-increment: steps; display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #000; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .step-body h4 { margin-top: 0; color: var(--text-bright); }
+  .layer-block { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .layer-header { background: var(--surface2); padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+  .layer-body { padding: 12px 14px; }
+  .class-chip { display: inline-block; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-family: monospace; color: var(--accent3); margin: 2px; }
+  .vs-table { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .vs-col { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .vs-col h4 { margin-top: 0; font-size: 14px; }
+  .vs-col ul { padding-left: 18px; margin: 0; }
+  .vs-col li { font-size: 12px; margin-bottom: 6px; }
+  .tag-removed { color: var(--accent4); }
+  .tag-kept { color: var(--accent2); }
+  .tag-new { color: var(--accent5); }
+  .toc-section { padding: 8px 16px 4px; margin-top: 8px; }
+  hr.section-sep { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  .pkg-tree { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; line-height: 1.8; }
+  .pkg-tree .d { color: var(--accent); }
+  .pkg-tree .f { color: var(--text-dim); }
+  .pkg-tree .note { color: #6e7681; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 5px 0; display: flex; gap: 8px; align-items: flex-start; }
+  .checklist li::before { content: "☐"; color: var(--text-dim); flex-shrink: 0; }
+  .env-table td:first-child { font-family: monospace; color: var(--accent3); }
+  .risk-high { color: var(--accent4); font-weight: 600; }
+  .risk-med { color: var(--accent3); font-weight: 600; }
+  .risk-low { color: var(--accent2); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<nav class="toc-sidebar">
+  <h3>Blueprint</h3>
+  <div class="toc-section" style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Analysis</div>
+  <a href="#overview">1. Overview</a>
+  <a href="#current-arch">2. Current Architecture</a>
+  <a href="#problems">3. Problems &amp; Gaps</a>
+  <a href="#merged-arch">4. Merged Architecture</a>
+  <div class="toc-section" style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Design</div>
+  <a href="#data-flow">5. Data Flow</a>
+  <a href="#contracts">6. Request/Response Contracts</a>
+  <a href="#enrichment">7. Data Enrichment Layer</a>
+  <a href="#engine-pool">8. Engine Pool Design</a>
+  <a href="#package-structure">9. Package Structure</a>
+  <a href="#layer-design">10. Layer-by-Layer Design</a>
+  <div class="toc-section" style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">Build</div>
+  <a href="#config">11. Configuration</a>
+  <a href="#dependencies">12. Dependencies</a>
+  <a href="#endpoints">13. API Endpoints</a>
+  <a href="#impl-order">14. Implementation Order</a>
+  <a href="#migration">15. Migration Strategy</a>
+  <a href="#checklist">16. Verification Checklist</a>
+  <a href="#risks">17. Risks &amp; Decisions</a>
+</nav>
+
+<main>
+
+<h1>rm3-promotion-service</h1>
+<p class="subtitle">
+  Merged Architecture Blueprint &nbsp;·&nbsp;
+  <span class="badge badge-red">rm3-engine-service (legacy)</span> +
+  <span class="badge badge-orange">rm3-calculate-invoice-core-service</span>
+  <span style="color:var(--text-dim)">→</span>
+  <span class="badge badge-green">rm3-promotion-service (new)</span>
+  &nbsp;·&nbsp; Feb 2026
+</p>
+
+<!-- ─────────────────────────────────────────────────── 1. OVERVIEW -->
+<h2 id="overview">1. Overview</h2>
+
+<p>
+  The current promotion pipeline is split across <strong>two separate services</strong> that communicate
+  over HTTP. This blueprint describes merging them into a single Spring Boot 3.2 service that embeds the
+  RM3E engine directly, eliminates the internal HTTP hop, and provides a clean XML/SOAP API that is
+  backward-compatible with the existing caller.
+</p>
+
+<div class="grid3">
+  <div class="card">
+    <h4 style="color:var(--accent4)">rm3-engine-service (dead-end)</h4>
+    <ul>
+      <li>Java 8 Servlet WAR, Tomcat 7</li>
+      <li>Accepts raw RPSD XML (engine format)</li>
+      <li>Thin wrapper — no business logic</li>
+      <li>Engine pool: spin-loop + semaphore</li>
+      <li>HTTP-only, no auth</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--accent3)">rm3-calculate-invoice-core-service</h4>
+    <ul>
+      <li>Spring Boot 3.1.8, Java 17</li>
+      <li>Accepts SOAP XML InvoiceRequest</li>
+      <li>Enriches: price + item props + customer</li>
+      <li>Builds RPSD XML, calls engine via HTTP</li>
+      <li>Returns SOAP XML Invoice response</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--accent2)">rm3-promotion-service (target)</h4>
+    <ul>
+      <li>Spring Boot 3.2.x, Java 17, JAR</li>
+      <li>Same SOAP XML interface (backward compat)</li>
+      <li>Engine pool embedded (ArrayBlockingQueue)</li>
+      <li>Zero internal HTTP hops</li>
+      <li>Oracle DB + OpenSearch + AWS S3</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────── 2. CURRENT ARCH -->
+<h2 id="current-arch">2. Current Architecture — Deep Analysis</h2>
+
+<h3>2.1 Two-Service Pipeline</h3>
+
+<div class="flow-box">
+  <div class="flow-node client"><div class="label">Caller</div><div class="name">API Service /<br>Client</div></div>
+  <div class="arrow">→</div>
+  <div class="flow-node service">
+    <div class="label">Spring Boot 3.1.8</div>
+    <div class="name">calculate-invoice<br>-core-service</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:4px">SOAP XML in/out<br>OpenSearch + Oracle</div>
+  </div>
+  <div class="arrow">→<br><small style="font-size:10px;color:var(--accent3)">HTTP POST<br>SOAP/RPSD XML</small></div>
+  <div class="flow-node engine">
+    <div class="label">Java 8 Servlet WAR</div>
+    <div class="name">rm3-engine-service</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:4px">RPSD XML in/out<br>Engine pool (N=20)</div>
+  </div>
+  <div class="arrow">→</div>
+  <div class="flow-node engine" style="border-color:var(--accent4)">
+    <div class="label">Proprietary JAR</div>
+    <div class="name">RM3E-3.5.0</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:4px">MMED rules engine</div>
+  </div>
+</div>
+
+<h3>2.2 Core Service — What It Actually Does</h3>
+<p>The core service is not a simple proxy. It performs significant orchestration on every request:</p>
+
+<table>
+  <tr><th>#</th><th>Step</th><th>Detail</th><th>Fallback</th></tr>
+  <tr>
+    <td>1</td>
+    <td>Parse SOAP XML request</td>
+    <td>Unwrap <code>&lt;x:Body&gt;</code> or <code>&lt;SOAP-ENV:Body&gt;</code> → unmarshal <code>InvoiceRequest</code> via JAXB</td>
+    <td>Throw 400</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Price lookup (parallel)</td>
+    <td>OpenSearch index <code>rm3getprice</code> by store+articles. If missing, retry with sentinel store <code>999999</code></td>
+    <td>Oracle DB (<code>ItemStoreValue</code> table)</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Item property lookup (parallel)</td>
+    <td>OpenSearch index <code>rm3product</code> by article codes → returns up to 5 property pairs (pt1/v1 … pt5/v5)</td>
+    <td>Oracle DB (<code>ItemPropertyValues</code> table)</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Customer property lookup</td>
+    <td>If <code>Cus != 0</code>: OpenSearch index <code>rm3customerlist</code> by customer number</td>
+    <td>Oracle DB (<code>CustomerPropertyValue</code> table)</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Build RPSD XML (ServletRequest)</td>
+    <td>Map InvoiceRequest + enrichment data → JAXB marshal to SOAP-wrapped RPSD XML<br>
+    Articles <strong>not found in price map are silently dropped</strong></td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Call engine service</td>
+    <td>HTTP POST to <code>SERVLET2_URL</code> with RPSD XML body; shadow routing with configurable %</td>
+    <td>Throw RestClientException</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Parse RPSD XML response</td>
+    <td>JAXB unmarshal <code>Rpsd</code> → <code>Transformer.transform()</code> → calculates NTot, DTot, ITot, per-line SDi/CDi/SPr</td>
+    <td>Throw 500</td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Return SOAP XML response</td>
+    <td>JAXB marshal <code>Invoice</code> → wrap with SOAP envelope (adds Capgemini namespace)</td>
+    <td>—</td>
+  </tr>
+</table>
+
+<h3>2.3 Engine Service — Internal Pool</h3>
+
+<pre><span class="comment">// Legacy: three separate maps — can desync</span>
+<span class="type">TreeMap</span>&lt;<span class="type">Long</span>, <span class="type">RM3S</span>&gt; rm3sList           <span class="comment">// engine instances</span>
+<span class="type">TreeMap</span>&lt;<span class="type">Long</span>, <span class="type">Long</span>&gt; rm3sStatusList      <span class="comment">// 0=idle, 1=busy, 5=loading</span>
+<span class="type">TreeMap</span>&lt;<span class="type">Long</span>, <span class="type">Semaphore</span>&gt; rm3sSemList   <span class="comment">// per-engine semaphore</span>
+
+<span class="comment">// Acquire loop: 300 x 10ms sleep = 3 second timeout</span>
+<span class="keyword">for</span> (i=0; i&lt;300 &amp;&amp; !found; i++) {
+    <span class="keyword">for</span> (engineSeq=0; engineSeq &lt; maxEngines &amp;&amp; !found;) {
+        <span class="keyword">if</span> (status==0 &amp;&amp; semaphore.permits &gt; 0) {
+            semaphore.acquire(); status=1; found=<span class="keyword">true</span>;
+        }
+    }
+    <span class="keyword">if</span> (!found) Thread.sleep(10);
+}</pre>
+
+<div class="callout callout-danger">
+  <strong>Critical Engine Bug</strong>
+  The engine releases the semaphore <em>before</em> resetting status to 0 (<code>rm3sSemList.get(seq).release()</code> then <code>rm3sStatusList.put(seq, 0L)</code>). There is no <code>finally</code> block — an exception thrown inside <code>startSimulate()</code> leaves the engine permanently busy with the semaphore released but status still set to 1. Over time, engines leak from the pool.
+</div>
+
+<!-- ─────────────────────────────────────────────────── 3. PROBLEMS -->
+<h2 id="problems">3. Problems &amp; Gaps in Current Architecture</h2>
+
+<table>
+  <tr><th>Category</th><th>Problem</th><th>Impact</th></tr>
+  <tr>
+    <td><span class="badge badge-red">Performance</span></td>
+    <td>Internal HTTP hop between core and engine service adds network latency + serialization cost on every request</td>
+    <td>Every invoice calculation pays XML marshal → HTTP → XML unmarshal twice extra</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-red">Reliability</span></td>
+    <td>Engine pool leak: exception in <code>startSimulate()</code> corrupts pool state (semaphore released, status not reset). No <code>finally</code> block.</td>
+    <td>Under load, engines leak. Service degrades silently until all 20 engines are "stuck".</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-red">Reliability</span></td>
+    <td>CPU spin-loop: 300x Thread.sleep(10) wastes CPU under contention instead of blocking efficiently</td>
+    <td>High CPU usage when all engines busy; thread starvation risk</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Complexity</span></td>
+    <td>RPSD XML is an internal engine format exposed as an API boundary. Core service must know the full RPSD schema just to call the engine.</td>
+    <td>Any RPSD schema change requires changes in two services</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Complexity</span></td>
+    <td>Two separate deployment units for what is logically one operation</td>
+    <td>Two Dockerfiles, two CI pipelines, two sets of env vars, two health checks to manage</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Complexity</span></td>
+    <td>SOAP XML in, SOAP XML out — no JSON API. All callers must implement SOAP parsing.</td>
+    <td>Poor developer experience; testing requires XML tooling</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-orange">Maintainability</span></td>
+    <td>Engine service uses Java 8 + Tomcat 7 WAR — no modern Spring Boot features, no Actuator, no Swagger</td>
+    <td>Cannot use Spring Boot ecosystem; requires separate web.xml config</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">Feature Gap</span></td>
+    <td>No API key security on either service. Anyone who can reach the endpoint can call it.</td>
+    <td>Security risk in production</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">Feature Gap</span></td>
+    <td>Shadow engine routing is implemented in core service but not cleanly abstracted — hardcoded <code>Random</code> comparison in service layer</td>
+    <td>Difficult to test or adjust without code changes</td>
+  </tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 4. MERGED ARCH -->
+<h2 id="merged-arch">4. Merged Service Architecture</h2>
+
+<p>The merged service brings the engine pool <em>inside</em> the Spring Boot application, eliminating the internal HTTP hop entirely. The external SOAP XML contract is preserved for backward compatibility.</p>
+
+<div class="flow-box">
+  <div class="flow-node client"><div class="label">Caller</div><div class="name">API Service /<br>Client</div></div>
+  <div class="arrow">→<br><small style="font-size:10px;color:var(--text-bright)">SOAP XML</small></div>
+  <div class="flow-node service" style="min-width:200px;text-align:left;padding:14px">
+    <div class="label">Spring Boot 3.2 — rm3-promotion-service</div>
+    <div style="margin-top:6px;font-size:11px;color:var(--text)">
+      <div>① Parse SOAP → InvoiceRequest</div>
+      <div>② Enrich: price + item props + customer</div>
+      <div>③ Build RPSD XML internally</div>
+      <div>④ Engine pool (embedded)</div>
+      <div>⑤ Parse response → Invoice</div>
+      <div>⑥ Return SOAP XML</div>
+    </div>
+  </div>
+  <div class="arrow">→<br><small style="font-size:10px;color:var(--accent5)">in-JVM call</small></div>
+  <div class="flow-node engine" style="border-color:var(--accent4)">
+    <div class="label">Embedded</div>
+    <div class="name">RM3E-3.5.0</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:4px">ArrayBlockingQueue<br>pool (N=20)</div>
+  </div>
+</div>
+
+<div class="flow-box" style="margin-top:0">
+  <div class="flow-node data" style="min-width:130px"><div class="label">Primary</div><div class="name">OpenSearch</div><div style="font-size:11px;color:var(--text-dim)">price, item props,<br>customer</div></div>
+  <div class="arrow">+</div>
+  <div class="flow-node data" style="border-color:var(--accent5)"><div class="label">Fallback</div><div class="name">Oracle DB</div><div style="font-size:11px;color:var(--text-dim)">JPA (same tables)</div></div>
+  <div class="arrow">+</div>
+  <div class="flow-node data" style="border-color:var(--accent3)"><div class="label">MMED source</div><div class="name">AWS S3</div><div style="font-size:11px;color:var(--text-dim)">mmed.xml reload</div></div>
+</div>
+
+<h3>4.1 What Is Removed vs Kept vs New</h3>
+
+<div class="vs-table">
+  <div class="vs-col">
+    <h4 style="color:var(--accent4)">Removed (from both legacy services)</h4>
+    <ul>
+      <li class="tag-removed">rm3-engine-service as a separate process</li>
+      <li class="tag-removed">Internal HTTP call (RestTemplate to SERVLET2_URL)</li>
+      <li class="tag-removed">SOAP/RPSD XML as external API format</li>
+      <li class="tag-removed">Java 8 / Tomcat 7 / WAR packaging</li>
+      <li class="tag-removed">TreeMap + Semaphore spin-loop pool</li>
+      <li class="tag-removed">web.xml configuration</li>
+      <li class="tag-removed">System.out.println logging</li>
+      <li class="tag-removed">Comparator service (not in scope)</li>
+    </ul>
+  </div>
+  <div class="vs-col">
+    <h4 style="color:var(--accent2)">Kept (business logic from core service)</h4>
+    <ul>
+      <li class="tag-kept">OpenSearch → DB fallback pattern for all lookups</li>
+      <li class="tag-kept">Mandatory item properties 888 (store) + 887 (USE_STORES)</li>
+      <li class="tag-kept">Price lookup: regularPrice fetched internally from OpenSearch (not from client)</li>
+      <li class="tag-kept">Price calculation: lineTotal = regularPrice × quantity</li>
+      <li class="tag-kept">Items missing from price catalog are reported in <code>skippedSkus[]</code> (no silent drop)</li>
+      <li class="tag-kept">Discount calculation logic (subtotal, totalDiscount, total, line-level amounts)</li>
+      <li class="tag-kept">Promotion type discrimination (&lt;10 = STANDARD, ≥10 = COUPON)</li>
+      <li class="tag-kept">Sentinel store 999999 fallback in price lookup</li>
+      <li class="tag-kept">MMED upload/reload/S3 download logic</li>
+      <li class="tag-kept">Internal RPSD XML models (used only inside the service, never exposed)</li>
+    </ul>
+  </div>
+</div>
+
+<div class="vs-table" style="margin-top:0">
+  <div class="vs-col">
+    <h4 style="color:var(--accent5)">New (in merged service)</h4>
+    <ul>
+      <li class="tag-new"><strong>REST JSON API</strong> — industry-standard, POS &amp; web friendly (replaces SOAP XML entirely)</li>
+      <li class="tag-new">Human-readable field names: <code>storeId</code>, <code>sku</code>, <code>quantity</code>, <code>subtotal</code>, <code>totalDiscount</code></li>
+      <li class="tag-new">Promotion type as string enum: <code>"STANDARD"</code> / <code>"COUPON"</code> (replaces cryptic SPI/CPI)</li>
+      <li class="tag-new"><code>skippedSkus[]</code> field — explicit reporting of articles not in catalog</li>
+      <li class="tag-new">ArrayBlockingQueue engine pool (no spin-loop)</li>
+      <li class="tag-new">ReentrantReadWriteLock for zero-downtime reload</li>
+      <li class="tag-new">Engine always returned in finally block (no leak)</li>
+      <li class="tag-new">Spring Boot Actuator health endpoint</li>
+      <li class="tag-new">Swagger / OpenAPI documentation</li>
+      <li class="tag-new">X-API-Key authentication filter</li>
+      <li class="tag-new">Single Dockerfile / single CI pipeline</li>
+    </ul>
+  </div>
+  <div class="vs-col">
+    <h4 style="color:var(--accent3)">Optional / Future</h4>
+    <ul>
+      <li>Shadow engine routing (feature-flag based)</li>
+      <li>JSON API endpoint alongside SOAP for new callers</li>
+      <li>Comparator service integration</li>
+      <li>Distributed tracing (Micrometer/Zipkin)</li>
+      <li>Response caching for repeated identical invoices</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────── 5. DATA FLOW -->
+<h2 id="data-flow">5. Data Flow</h2>
+
+<h3>5.1 Full Request Processing Flow</h3>
+
+<pre>
+<span class="comment">── Inbound ──────────────────────────────────────────────────────────────</span>
+Client (POS terminal / website / API consumer)
+  POST /api/v1/promotions/calculate
+  Content-Type: application/json
+  X-API-Key: &lt;key&gt;
+  Body: JSON { storeId, customerId, transactionDate, items:[{sku, quantity}] }
+
+<span class="comment">── PromotionController ───────────────────────────────────────────────</span>
+  1. @Valid deserialise CalculateRequest (Jackson)
+  2. generate requestId (UUID) if not provided by client
+  3. delegate → PromotionService.calculate(request, requestId)
+
+<span class="comment">── PromotionService ───────────────────────────────────────────────────</span>
+  4. allSkus = request.getItems().map(sku) → Set&lt;String&gt;
+
+  5. (CompletableFuture.supplyAsync) PriceDataService.getPrices(storeId, allSkus)
+       a. OpenSearch rm3getprice by loc + articles
+       b. if missing → retry with loc=999999
+       c. if still missing → Oracle DB (ItemStoreValue)
+     → Map&lt;String, Double&gt; skuRegularPriceMap
+
+  6. (CompletableFuture.supplyAsync) ItemPropertyService.getProperties(allSkus)
+       a. OpenSearch rm3product by SKU codes → SourceES (pt1-5, v1-5)
+       b. if missing → Oracle DB (ItemPropertyValues)
+     → Map&lt;String, Product&gt; itemPropertyMap
+
+  7. (if request.getCustomerId() != null &amp;&amp; != 0) CustomerDataService.getCustomer(cusNo)
+       a. OpenSearch rm3customerlist by cusNo
+       b. if missing → Oracle DB (CustomerPropertyValue)
+     → List&lt;CustomerList&gt; customerProperties
+
+  8. skippedSkus = allSkus - skuRegularPriceMap.keySet()  ← explicit, not silent
+
+  9. wait all futures
+
+<span class="comment">── RpsdXmlBuilder (internal — never exposed to clients) ──────────────</span>
+  10. Build internal RPSD/Invoice JAXB model (engine's proprietary format):
+     invoice.id         = requestId (or UUID)
+     invoice.sreKey     = request.getStoreId()
+     invoice.invoiceDate = request.getTransactionDate()
+     invoice.custNo     = 0
+     invoice.invoiceTime = 0
+     invoice.valueInd   = 1
+     invoice.customerProperty = [PropertyType{id, value}] (from step 7)
+
+     for each item where sku in skuRegularPriceMap:
+       invoiceLine.seqNo      = i++
+       invoiceLine.itemType   = "A"
+       invoiceLine.itemNo     = item.sku
+       invoiceLine.quantity   = item.quantity
+       invoiceLine.amount     = regularPrice × item.quantity
+       invoiceLine.rm3EItemType = 4
+       invoiceLine.properties += [pt1/v1 … pt5/v5]  (from step 6)
+       invoiceLine.properties += {id:888, value:storeId}   <span class="comment">← mandatory</span>
+       invoiceLine.properties += {id:887, value:"USE_STORES"}  <span class="comment">← mandatory</span>
+
+     rpsd.hasMPXInvoiceDependency = true
+     JAXB marshal → RPSD XML string  <span class="comment">← engine's internal format only</span>
+
+<span class="comment">── EnginePool ─────────────────────────────────────────────────────────</span>
+  11. reloadLock.readLock().lock()                <span class="comment">← parallel simulate OK</span>
+  12. engine = queue.poll(3000ms)
+      if null → throw EngineTimeoutException (HTTP 503)
+  13. try {
+        engine.rm3s.setDebugLevel(config)
+        engine.rm3s.setNbrDecimals(config)
+        engine.rm3s.startSimulate(rpsdXml, 1)
+        rpsdXmlResponse = engine.rm3s.getRpsd()
+      } finally {
+        queue.offer(engine)                       <span class="comment">← ALWAYS returned</span>
+        reloadLock.readLock().unlock()
+      }
+
+<span class="comment">── Response transformation → clean JSON (never XML) ──────────────────</span>
+  14. JAXB unmarshal rpsdXmlResponse → Rpsd (internal model)
+
+  15. ResponseMapper.toCalculateResponse(rpsd, request, skippedSkus):
+      → summary.subtotal   = Σ(line.amount)
+      → summary.totalDiscount = Σ(invoiceResult.totalDiscountAmountAfterDistribution)
+      → summary.total      = subtotal - totalDiscount
+      → for each InvoiceResultType:
+           PromotionResult{
+             promotionId   = promotionNo
+             type          = promotionType &lt; 10 ? "STANDARD" : "COUPON"
+             description   = promotionText
+             timesApplied  = times
+             discountAmount = totalDiscountAmountAfterDistribution
+             prerequisites  = Pre[]{type, item}
+           }
+      → for each InvoiceLineType:
+           CalculatedItem{
+             sku            = itemNo
+             quantity       = quantity
+             unitPrice      = round(amount/quantity, 3)
+             subtotal       = round(amount, 3)
+             standardDiscount = Σ(lineResult.resultValue where promotionType&lt;10)
+             couponDiscount  = Σ(lineResult.resultValue where promotionType≥10)
+             finalAmount     = subtotal - standardDiscount - couponDiscount
+             appliedPromotions = [{promotionId, type, discountAmount}]
+           }
+      → round all monetary values to 3dp
+
+  16. return ResponseEntity.ok(CalculateResponse{
+        requestId, storeId, calculatedAt,
+        summary, items, promotions, skippedSkus
+      })
+</pre>
+
+<h3>5.2 MMED Reload Flow</h3>
+
+<pre>
+POST /api/v1/mmed/reload  (X-API-Key required)
+
+MmedController → MmedService.reloadMmed()
+  1. S3MmedDownloader.downloadToFile(bucket, key, localPath)
+  2. mmed = RM3Interface.RM3CreateMmedTypeRefFromXML(localPath)
+  3. for each extraPath in config:
+        RM3Interface.RM3AppendMmedTypeRefFromXML(extraPath, mmed)
+  4. enginePool.reloadAll(mmed):
+       writeLock.lock()                          <span class="comment">← blocks all new simulate calls</span>
+       drain all engines from queue (poll up to 10s each)
+       for each engine:
+           RM3S fresh = new RM3S()
+           result = fresh.checkMmed(mmed, debugLevel)
+           if result != 0 → throw EngineInitException(41)
+           engine.rm3s = fresh                   <span class="comment">← atomic swap</span>
+       return all engines to queue
+       writeLock.unlock()                        <span class="comment">← simulate calls resume</span>
+  5. return MmedOperationResponse{success, reloadedAt}
+</pre>
+
+<!-- ─────────────────────────────────────────────────── 6. CONTRACTS -->
+<h2 id="contracts">6. Request/Response Contracts — REST JSON API</h2>
+
+<div class="callout callout-success">
+  <strong>Design reference</strong>
+  API contract modelled after Microsoft Dynamics 365 Commerce CalculateSalesDocument API, Shopify Cart API, and Stripe's error format — all of which power large-scale POS and e-commerce platforms globally. Core principle: <em>the client sends only what it knows (SKU + quantity + store); everything else (price, item properties, customer segments) is fetched and enriched server-side.</em>
+</div>
+
+<h3>6.1 Calculate Promotions — POST /api/v1/promotions/calculate</h3>
+
+<div class="grid2">
+  <div>
+    <h4>Request Body</h4>
+    <pre>{
+  <span class="comment">// Optional — client-generated UUID for idempotency</span>
+  <span class="field">"requestId"</span>: <span class="string">"3f7a1b2c-4d5e-6f7a-8b9c-0d1e2f3a4b5c"</span>,
+
+  <span class="field">"storeId"</span>: <span class="string">"0101"</span>,           <span class="comment">// required</span>
+  <span class="field">"customerId"</span>: <span class="number">0</span>,            <span class="comment">// 0 or null = anonymous</span>
+  <span class="field">"transactionDate"</span>: <span class="string">"2024-01-15"</span>,  <span class="comment">// ISO date, defaults to today</span>
+
+  <span class="field">"items"</span>: [
+    {
+      <span class="field">"sku"</span>: <span class="string">"12345678"</span>,        <span class="comment">// required: article/SKU code</span>
+      <span class="field">"quantity"</span>: <span class="number">2</span>             <span class="comment">// required: must be > 0</span>
+    },
+    {
+      <span class="field">"sku"</span>: <span class="string">"87654321"</span>,
+      <span class="field">"quantity"</span>: <span class="number">1</span>
+    }
+  ]
+}</pre>
+    <div class="callout callout-info" style="margin-top:8px">
+      <strong>No price in request</strong>
+      Clients do NOT send prices. The service fetches the authoritative <code>regularPrice</code> from OpenSearch. This prevents price tampering and ensures discount calculations are always based on the correct catalogue price.
+    </div>
+  </div>
+  <div>
+    <h4>Success Response (200 OK)</h4>
+    <pre>{
+  <span class="field">"requestId"</span>: <span class="string">"3f7a1b2c-..."</span>,
+  <span class="field">"storeId"</span>: <span class="string">"0101"</span>,
+  <span class="field">"calculatedAt"</span>: <span class="string">"2024-01-15T10:30:00Z"</span>,
+
+  <span class="comment">// Order-level totals</span>
+  <span class="field">"summary"</span>: {
+    <span class="field">"subtotal"</span>:       <span class="number">299.700</span>,   <span class="comment">// Σ regular prices × qty</span>
+    <span class="field">"totalDiscount"</span>:  <span class="number">20.000</span>,    <span class="comment">// Σ all promotion discounts</span>
+    <span class="field">"total"</span>:          <span class="number">279.700</span>    <span class="comment">// subtotal - totalDiscount</span>
+  },
+
+  <span class="comment">// Line-level detail</span>
+  <span class="field">"items"</span>: [
+    {
+      <span class="field">"sku"</span>:              <span class="string">"12345678"</span>,
+      <span class="field">"quantity"</span>:         <span class="number">2</span>,
+      <span class="field">"unitPrice"</span>:        <span class="number">99.900</span>,   <span class="comment">// from price catalogue</span>
+      <span class="field">"subtotal"</span>:         <span class="number">199.800</span>,  <span class="comment">// unitPrice × quantity</span>
+      <span class="field">"standardDiscount"</span>: <span class="number">20.000</span>,  <span class="comment">// from standard promotions</span>
+      <span class="field">"couponDiscount"</span>:   <span class="number">0.000</span>,    <span class="comment">// from coupon promotions</span>
+      <span class="field">"finalAmount"</span>:      <span class="number">179.800</span>, <span class="comment">// subtotal-sDi-cDi</span>
+      <span class="field">"appliedPromotions"</span>: [
+        {
+          <span class="field">"promotionId"</span>:    <span class="string">"PROMO001"</span>,
+          <span class="field">"type"</span>:           <span class="string">"STANDARD"</span>,   <span class="comment">// or "COUPON"</span>
+          <span class="field">"discountAmount"</span>: <span class="number">20.000</span>
+        }
+      ]
+    },
+    {
+      <span class="field">"sku"</span>: <span class="string">"87654321"</span>, <span class="field">"quantity"</span>: <span class="number">1</span>,
+      <span class="field">"unitPrice"</span>: <span class="number">99.900</span>, <span class="field">"subtotal"</span>: <span class="number">99.900</span>,
+      <span class="field">"standardDiscount"</span>: <span class="number">0.000</span>, <span class="field">"couponDiscount"</span>: <span class="number">0.000</span>,
+      <span class="field">"finalAmount"</span>: <span class="number">99.900</span>, <span class="field">"appliedPromotions"</span>: []
+    }
+  ],
+
+  <span class="comment">// Order-level promotion detail</span>
+  <span class="field">"promotions"</span>: [
+    {
+      <span class="field">"promotionId"</span>:    <span class="string">"PROMO001"</span>,
+      <span class="field">"type"</span>:           <span class="string">"STANDARD"</span>,
+      <span class="field">"description"</span>:   <span class="string">"10% off electronics"</span>,
+      <span class="field">"timesApplied"</span>:  <span class="number">1.0</span>,
+      <span class="field">"discountAmount"</span>: <span class="number">20.000</span>,
+      <span class="field">"prerequisites"</span>: [
+        { <span class="field">"type"</span>: <span class="number">1</span>, <span class="field">"item"</span>: <span class="string">"12345678"</span> }
+      ]
+    }
+  ],
+
+  <span class="comment">// SKUs that had no price in the catalogue (transparent, not silently dropped)</span>
+  <span class="field">"skippedSkus"</span>: []
+}</pre>
+  </div>
+</div>
+
+<h3>6.2 Error Responses</h3>
+
+<p>All errors follow a single envelope format (inspired by Stripe's error model):</p>
+
+<div class="grid2">
+  <div>
+    <h4>Validation error (400)</h4>
+    <pre>{
+  <span class="field">"status"</span>: <span class="number">400</span>,
+  <span class="field">"code"</span>: <span class="string">"VALIDATION_ERROR"</span>,
+  <span class="field">"message"</span>: <span class="string">"Request validation failed"</span>,
+  <span class="field">"details"</span>: [
+    {
+      <span class="field">"field"</span>: <span class="string">"items"</span>,
+      <span class="field">"issue"</span>: <span class="string">"At least one item is required"</span>
+    }
+  ],
+  <span class="field">"requestId"</span>: <span class="string">"3f7a1b2c-..."</span>,
+  <span class="field">"timestamp"</span>: <span class="string">"2024-01-15T10:30:00Z"</span>
+}</pre>
+  </div>
+  <div>
+    <h4>Engine busy (503)</h4>
+    <pre>{
+  <span class="field">"status"</span>: <span class="number">503</span>,
+  <span class="field">"code"</span>: <span class="string">"ENGINE_TIMEOUT"</span>,
+  <span class="field">"message"</span>: <span class="string">"Promotion engine unavailable. All
+instances are busy. Please retry."</span>,
+  <span class="field">"requestId"</span>: <span class="string">"3f7a1b2c-..."</span>,
+  <span class="field">"timestamp"</span>: <span class="string">"2024-01-15T10:30:00Z"</span>
+}</pre>
+  </div>
+</div>
+
+<div class="grid2">
+  <div>
+    <h4>Unauthorized (401)</h4>
+    <pre>{
+  <span class="field">"status"</span>: <span class="number">401</span>,
+  <span class="field">"code"</span>: <span class="string">"UNAUTHORIZED"</span>,
+  <span class="field">"message"</span>: <span class="string">"Invalid or missing X-API-Key header"</span>,
+  <span class="field">"timestamp"</span>: <span class="string">"2024-01-15T10:30:00Z"</span>
+}</pre>
+  </div>
+  <div>
+    <h4>Internal error (500)</h4>
+    <pre>{
+  <span class="field">"status"</span>: <span class="number">500</span>,
+  <span class="field">"code"</span>: <span class="string">"INTERNAL_ERROR"</span>,
+  <span class="field">"message"</span>: <span class="string">"An unexpected error occurred"</span>,
+  <span class="field">"requestId"</span>: <span class="string">"3f7a1b2c-..."</span>,
+  <span class="field">"timestamp"</span>: <span class="string">"2024-01-15T10:30:00Z"</span>
+}</pre>
+  </div>
+</div>
+
+<h3>6.3 Field Glossary — Old SOAP vs New REST JSON</h3>
+
+<p>How legacy SOAP field names map to the new human-readable REST API:</p>
+
+<table>
+  <tr><th>Old SOAP Field</th><th>Level</th><th>New JSON Field</th><th>Notes</th></tr>
+  <tr><td><code>Inv</code></td><td>Request</td><td><code>requestId</code></td><td>UUID instead of invoice number</td></tr>
+  <tr><td><code>Sto</code></td><td>Request</td><td><code>storeId</code></td><td>Same value</td></tr>
+  <tr><td><code>Cus</code></td><td>Request</td><td><code>customerId</code></td><td>0/null = anonymous</td></tr>
+  <tr><td><code>DTi</code></td><td>Request</td><td><code>transactionDate</code></td><td>ISO 8601 date</td></tr>
+  <tr><td><code>Lin[].Art</code></td><td>Request item</td><td><code>items[].sku</code></td><td>Article/SKU code</td></tr>
+  <tr><td><code>Lin[].Qty</code></td><td>Request item</td><td><code>items[].quantity</code></td><td>Same value</td></tr>
+  <tr><td><code>Lin[].Price</code></td><td>Request item</td><td><em>removed</em></td><td>Price fetched server-side, never from client</td></tr>
+  <tr><td><code>NTot</code></td><td>Response summary</td><td><code>summary.subtotal</code></td><td>Σ regular prices</td></tr>
+  <tr><td><code>DTot</code></td><td>Response summary</td><td><code>summary.totalDiscount</code></td><td>Σ all discounts</td></tr>
+  <tr><td><code>ITot</code></td><td>Response summary</td><td><code>summary.total</code></td><td>subtotal − totalDiscount</td></tr>
+  <tr><td><code>Lin[].NPr</code></td><td>Response item</td><td><code>items[].unitPrice</code></td><td>Regular unit price</td></tr>
+  <tr><td><code>Lin[].NAm</code></td><td>Response item</td><td><code>items[].subtotal</code></td><td>unitPrice × quantity</td></tr>
+  <tr><td><code>Lin[].SDi</code></td><td>Response item</td><td><code>items[].standardDiscount</code></td><td>Σ standard promotion discounts</td></tr>
+  <tr><td><code>Lin[].CDi</code></td><td>Response item</td><td><code>items[].couponDiscount</code></td><td>Σ coupon promotion discounts</td></tr>
+  <tr><td><code>Lin[].SPr</code></td><td>Response item</td><td><code>items[].finalAmount</code></td><td>subtotal − standardDiscount − couponDiscount</td></tr>
+  <tr><td><code>Lin[].Pro[].SPI</code></td><td>Response item promo</td><td><code>items[].appliedPromotions[].promotionId</code> (type=STANDARD)</td><td>Standard promotion ID per line</td></tr>
+  <tr><td><code>Lin[].Pro[].CPI</code></td><td>Response item promo</td><td><code>items[].appliedPromotions[].promotionId</code> (type=COUPON)</td><td>Coupon promotion ID per line</td></tr>
+  <tr><td><code>Lin[].Pro[].RVal</code></td><td>Response item promo</td><td><code>items[].appliedPromotions[].discountAmount</code></td><td>Discount amount from this promotion</td></tr>
+  <tr><td><code>Res[].SPI</code> / <code>CPI</code></td><td>Response promo</td><td><code>promotions[].promotionId</code></td><td>Promotion ID at order level</td></tr>
+  <tr><td><code>Res[].Txt</code></td><td>Response promo</td><td><code>promotions[].description</code></td><td>Human-readable promotion name</td></tr>
+  <tr><td><code>Res[].Tim</code></td><td>Response promo</td><td><code>promotions[].timesApplied</code></td><td>How many times rule fired</td></tr>
+  <tr><td><code>Res[].Dis</code></td><td>Response promo</td><td><code>promotions[].discountAmount</code></td><td>Total discount from this promotion</td></tr>
+  <tr><td><code>Res[].PTyp</code></td><td>Response promo</td><td><code>promotions[].type</code></td><td><code>"STANDARD"</code> or <code>"COUPON"</code> (not raw number)</td></tr>
+  <tr><td><code>Res[].Val</code></td><td>Response promo</td><td><code>promotions[].value</code></td><td>Free item / gift value (key 103)</td></tr>
+  <tr><td><code>Res[].Pre[]</code></td><td>Response promo</td><td><code>promotions[].prerequisites[]</code></td><td>Prerequisite items for promotion</td></tr>
+  <tr><td><em>(silent drop)</em></td><td>—</td><td><code>skippedSkus[]</code></td><td>SKUs not found in catalogue — now explicit</td></tr>
+</table>
+
+<h3>6.4 MMED &amp; Admin Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Body</th><th>Response</th></tr>
+  <tr><td>POST</td><td>/api/v1/mmed/upload</td><td>X-API-Key</td><td><code>{"mmedXml":"..."}</code></td><td><code>{"success":true,"message":"MMED uploaded (not active yet)","uploadedAt":"..."}</code></td></tr>
+  <tr><td>POST</td><td>/api/v1/mmed/reload</td><td>X-API-Key</td><td>empty</td><td><code>{"success":true,"message":"MMED reloaded","reloadedAt":"..."}</code></td></tr>
+  <tr><td>POST</td><td>/api/v1/mmed/upload-reload</td><td>X-API-Key</td><td><code>{"mmedXml":"..."}</code></td><td><code>{"success":true,"message":"MMED uploaded and activated","reloadedAt":"..."}</code></td></tr>
+  <tr><td>GET</td><td>/api/v1/version</td><td>X-API-Key</td><td>—</td><td><code>{"servletVersion":"1.0.0","engineVersion":"3.5.0","queriedAt":"..."}</code></td></tr>
+  <tr><td>GET</td><td>/actuator/health</td><td>none</td><td>—</td><td><code>{"status":"UP"}</code></td></tr>
+  <tr><td>GET</td><td>/swagger-ui.html</td><td>none</td><td>—</td><td>Swagger UI</td></tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 7. ENRICHMENT -->
+<h2 id="enrichment">7. Data Enrichment Layer</h2>
+
+<h3>7.1 Price Lookup Strategy</h3>
+<pre>
+PriceDataService.getPrices(store, articles):
+  <span class="comment">// Step 1 — OpenSearch with actual store</span>
+  BoolQuery: must(loc=store) + must(articles IN ids) + mustNot(cusListFilter exists)
+  → collect found records; track remaining = articles - found
+
+  <span class="comment">// Step 2 — OpenSearch with sentinel store 999999</span>
+  if remaining not empty:
+    BoolQuery: must(loc="999999") + must(remaining articles)
+    → collect; update remaining
+
+  <span class="comment">// Step 3 — Oracle DB fallback</span>
+  if remaining not empty:
+    SELECT from ItemStoreValue WHERE item IN remaining AND store = store
+    → PriceRecord{article, regularPrice}
+
+  return Map&lt;articleCode, regularPrice&gt;</pre>
+
+<div class="callout callout-warn">
+  <strong>Important business rule</strong>
+  Articles not found after all three steps are silently omitted from the engine request. The client receives a response with fewer lines than requested. No error is returned. This behavior must be preserved.
+</div>
+
+<h3>7.2 Item Property Lookup Strategy</h3>
+<pre>
+ItemPropertyService.getProperties(articles):
+  <span class="comment">// OpenSearch rm3product index</span>
+  BoolQuery: must(productCode IN articles)
+  → map SourceES → Product{productCode, productDetail{pt1-5, v1-5}}
+
+  <span class="comment">// DB fallback (per missing article)</span>
+  if products empty or partial:
+    SELECT property_type, value FROM ItemPropertyValues WHERE item IN missing
+    → group by item → SourceES with up to 5 pt/v pairs
+
+  return Map&lt;articleCode, Product&gt;</pre>
+
+<h3>7.3 Customer Property Lookup Strategy</h3>
+<pre>
+CustomerDataService.getCustomer(cusNo):
+  if cusNo == 0: return empty list
+
+  <span class="comment">// OpenSearch rm3customerlist index</span>
+  BoolQuery: must(cusNo = cusNo)
+  → List&lt;CustomerList{cusList, value}&gt;
+
+  <span class="comment">// DB fallback</span>
+  if IOException:
+    SELECT from QS_CUS_CUS_PROPERTY_VALUES WHERE customer_number = cusNo
+    → CustomerList{cusList=propertyType, value=...}
+
+  These map directly to invoice.customerProperty[]{id=cusList, value=value}</pre>
+
+<h3>7.4 Mandatory Item Properties Injected by Core Service</h3>
+<table>
+  <tr><th>Property ID</th><th>Value</th><th>Applied To</th><th>Purpose</th></tr>
+  <tr><td><code>888</code></td><td>request.getSto() (store code)</td><td>Every invoice line</td><td>Store-specific rule scoping in MMED</td></tr>
+  <tr><td><code>887</code></td><td><code>"USE_STORES"</code></td><td>Every invoice line</td><td>Activates store-scoped promotion evaluation</td></tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 8. ENGINE POOL -->
+<h2 id="engine-pool">8. Engine Pool Design</h2>
+
+<h3>8.1 New Pool Architecture</h3>
+
+<pre>
+<span class="keyword">@Component</span>
+<span class="keyword">public class</span> <span class="type">EnginePool</span> {
+    <span class="keyword">private final</span> <span class="type">ArrayBlockingQueue</span>&lt;<span class="type">EngineWrapper</span>&gt; pool;   <span class="comment">// fair=true</span>
+    <span class="keyword">private final</span> <span class="type">List</span>&lt;<span class="type">EngineWrapper</span>&gt;          allEngines; <span class="comment">// for reload</span>
+    <span class="keyword">private final</span> <span class="type">ReentrantReadWriteLock</span>      reloadLock;
+    <span class="keyword">private final</span> <span class="type">AppProperties</span>               config;
+
+    <span class="comment">// ── SIMULATE (read lock, parallel) ──────────────────────────────</span>
+    <span class="keyword">public</span> &lt;T&gt; T execute(<span class="type">Function</span>&lt;<span class="type">EngineWrapper</span>, T&gt; task) {
+        reloadLock.readLock().lock();
+        <span class="keyword">try</span> {
+            <span class="type">EngineWrapper</span> engine = pool.poll(config.getAcquireTimeoutMs(), MILLISECONDS);
+            <span class="keyword">if</span> (engine == <span class="keyword">null</span>) <span class="keyword">throw new</span> <span class="type">EngineTimeoutException</span>(<span class="number">32</span>);
+            <span class="keyword">try</span> {
+                <span class="keyword">return</span> task.apply(engine);
+            } <span class="keyword">finally</span> {
+                pool.offer(engine);           <span class="comment">// ALWAYS returned, even on exception</span>
+            }
+        } <span class="keyword">finally</span> {
+            reloadLock.readLock().unlock();
+        }
+    }
+
+    <span class="comment">// ── RELOAD (write lock, exclusive) ──────────────────────────────</span>
+    <span class="keyword">public void</span> reloadAll(<span class="type">MmedType</span> newMmed) {
+        reloadLock.writeLock().lock();        <span class="comment">// blocks ALL new simulate calls</span>
+        <span class="keyword">try</span> {
+            <span class="comment">// drain pool (wait for in-flight calls to finish)</span>
+            <span class="type">List</span>&lt;<span class="type">EngineWrapper</span>&gt; drained = <span class="keyword">new</span> <span class="type">ArrayList</span>&lt;&gt;();
+            <span class="keyword">for</span> (<span class="type">EngineWrapper</span> e : allEngines)
+                drained.add(pool.poll(<span class="number">10</span>, SECONDS)); <span class="comment">// wait for each engine</span>
+            <span class="comment">// reinitialize each engine with new MMED</span>
+            <span class="keyword">for</span> (<span class="type">EngineWrapper</span> e : drained) {
+                e.reloadMmed(newMmed, config);
+                pool.offer(e);
+            }
+        } <span class="keyword">finally</span> {
+            reloadLock.writeLock().unlock();  <span class="comment">// simulate calls resume</span>
+        }
+    }
+}
+
+<span class="keyword">public class</span> <span class="type">EngineWrapper</span> {
+    <span class="keyword">private volatile</span> <span class="type">RM3S</span> rm3s;
+
+    <span class="keyword">public</span> <span class="type">String</span> simulate(<span class="type">String</span> rpsdXml, <span class="type">AppProperties</span> cfg) {
+        rm3s.setDebugLevel(cfg.getDebugLevel());
+        rm3s.setNbrDecimals(cfg.getNbrDecimals());
+        rm3s.startSimulate(rpsdXml, <span class="number">1</span>);         <span class="comment">// 1 = inline XML</span>
+        <span class="keyword">return</span> rm3s.getRpsd();
+    }
+
+    <span class="keyword">public void</span> reloadMmed(<span class="type">MmedType</span> newMmed, <span class="type">AppProperties</span> cfg) {
+        <span class="type">RM3S</span> fresh = <span class="keyword">new</span> <span class="type">RM3S</span>();
+        <span class="keyword">long</span> rc = fresh.checkMmed(newMmed, cfg.getDebugLevel());
+        <span class="keyword">if</span> (rc != <span class="number">0</span>) <span class="keyword">throw new</span> <span class="type">EngineInitException</span>(<span class="number">41</span>, rc);
+        <span class="keyword">this</span>.rm3s = fresh;                       <span class="comment">// volatile = atomic swap</span>
+    }
+}</pre>
+
+<h3>8.2 Comparison: Old vs New Pool</h3>
+<table>
+  <tr><th>Concern</th><th>Old (rm3-engine-service)</th><th>New (rm3-promotion-service)</th></tr>
+  <tr><td>Data structure</td><td>3 × TreeMap (can desync)</td><td>1 × ArrayBlockingQueue (atomic)</td></tr>
+  <tr><td>Acquire</td><td>300 × Thread.sleep(10ms) spin</td><td>queue.poll(3000ms) — OS-level block</td></tr>
+  <tr><td>Engine return</td><td>Manual before/after — leaks on exception</td><td><code>finally</code> block — guaranteed return</td></tr>
+  <tr><td>Reload safety</td><td>None — concurrent simulate + reload possible</td><td>ReentrantReadWriteLock — reload waits for all simulate to finish</td></tr>
+  <tr><td>Timeout error</td><td>Error code 32 (preserved)</td><td>Error code 32 (preserved)</td></tr>
+  <tr><td>CPU under load</td><td>High (spin loop)</td><td>Low (blocking queue)</td></tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 9. PACKAGE STRUCTURE -->
+<h2 id="package-structure">9. Package Structure</h2>
+
+<div class="pkg-tree">
+<span class="d">rm3-promotion-service/</span>
+├── pom.xml
+├── Dockerfile
+├── <span class="d">lib/</span>
+│   └── RM3E-3.5.0.jar              <span class="note">← proprietary engine JAR (system scope)</span>
+└── <span class="d">src/main/java/com/capgemini/rm3/promotion/</span>
+    │
+    ├── Rm3PromotionServiceApplication.java   <span class="note">@SpringBootApplication</span>
+    │
+    ├── <span class="d">config/</span>
+    │   ├── AppProperties.java                <span class="note">@ConfigurationProperties("rm3")</span>
+    │   ├── EnginePoolConfig.java             <span class="note">@Bean: load MMED → create pool</span>
+    │   ├── OpenSearchConfig.java             <span class="note">RestHighLevelClient bean</span>
+    │   ├── AsyncConfig.java                  <span class="note">@EnableAsync, thread pools</span>
+    │   └── SecurityConfig.java               <span class="note">register ApiKeyFilter</span>
+    │
+    ├── <span class="d">security/</span>
+    │   └── ApiKeyFilter.java                 <span class="note">OncePerRequestFilter — X-API-Key</span>
+    │
+    ├── <span class="d">engine/</span>
+    │   ├── EnginePool.java                   <span class="note">ArrayBlockingQueue + ReadWriteLock</span>
+    │   └── EngineWrapper.java                <span class="note">wraps one RM3S; volatile swap on reload</span>
+    │
+    ├── <span class="d">mmed/</span>
+    │   ├── MmedService.java                  <span class="note">upload / reload / validate</span>
+    │   └── S3MmedDownloader.java             <span class="note">AWS SDK v2 download</span>
+    │
+    ├── <span class="d">enrichment/</span>                         <span class="note">← NEW: data enrichment layer</span>
+    │   ├── PriceDataService.java             <span class="note">OpenSearch → 999999 → Oracle DB</span>
+    │   ├── ItemPropertyService.java          <span class="note">OpenSearch → Oracle DB</span>
+    │   └── CustomerDataService.java          <span class="note">OpenSearch → Oracle DB</span>
+    │
+    ├── <span class="d">dto/</span>                                <span class="note">public JSON API models (Jackson, @Valid)</span>
+    │   ├── <span class="d">request/</span>
+    │   │   ├── CalculateRequest.java         <span class="note">{ storeId, customerId, transactionDate, items[] }</span>
+    │   │   └── RequestItem.java              <span class="note">{ sku, quantity }</span>
+    │   └── <span class="d">response/</span>
+    │       ├── CalculateResponse.java        <span class="note">{ requestId, storeId, calculatedAt, summary, items[], promotions[], skippedSkus[] }</span>
+    │       ├── OrderSummary.java             <span class="note">{ subtotal, totalDiscount, total }</span>
+    │       ├── CalculatedItem.java           <span class="note">{ sku, quantity, unitPrice, subtotal, standardDiscount, couponDiscount, finalAmount, appliedPromotions[] }</span>
+    │       ├── AppliedPromotion.java         <span class="note">{ promotionId, type, discountAmount }</span>
+    │       ├── PromotionResult.java          <span class="note">{ promotionId, type, description, timesApplied, discountAmount, prerequisites[] }</span>
+    │       ├── Prerequisite.java             <span class="note">{ type, item }</span>
+    │       ├── MmedOperationResponse.java    <span class="note">{ success, message, uploadedAt/reloadedAt }</span>
+    │       ├── VersionResponse.java          <span class="note">{ servletVersion, engineVersion, queriedAt }</span>
+    │       └── ErrorResponse.java            <span class="note">{ status, code, message, details[], requestId, timestamp }</span>
+    │
+    ├── <span class="d">model/</span>                              <span class="note">internal models — never exposed via API</span>
+    │   ├── <span class="d">rpsd/</span>                           <span class="note">JAXB models for engine communication only</span>
+    │   │   ├── Rpsd.java
+    │   │   ├── Invoice.java                  <span class="note">engine Invoice (not the REST response)</span>
+    │   │   ├── InvoiceLineType.java
+    │   │   ├── InvoiceResultType.java
+    │   │   ├── InvoiceLineResultType.java
+    │   │   ├── InvoiceExtraResultInfoType.java
+    │   │   ├── InvoiceResultConditionTrueType.java
+    │   │   ├── PropertyType.java
+    │   │   ├── ServletRequest.java
+    │   │   ├── Body.java
+    │   │   └── InformationType.java
+    │   └── <span class="d">enrichment/</span>
+    │       ├── PriceRecord.java
+    │       ├── Product.java
+    │       ├── SourceES.java
+    │       └── CustomerList.java
+    │
+    ├── <span class="d">entity/</span>                             <span class="note">JPA Oracle entities</span>
+    │   ├── ItemStoreValue.java
+    │   ├── ItemPropertyValues.java
+    │   ├── CustomerPropertyValue.java
+    │   ├── CustomerData.java
+    │   └── id/ItemStoreValueId.java
+    │
+    ├── <span class="d">repository/</span>
+    │   ├── PriceRepository.java              <span class="note">interface</span>
+    │   ├── ItemPropertyRepository.java       <span class="note">interface</span>
+    │   ├── CustomerRepository.java           <span class="note">interface</span>
+    │   ├── ItemStoreValueRepository.java     <span class="note">JpaRepository</span>
+    │   ├── ItemPropertyValuesRepository.java <span class="note">JpaRepository</span>
+    │   ├── CustomerPropertyValueRepository.java
+    │   └── <span class="d">impl/</span>
+    │       ├── PriceRepositoryImpl.java      <span class="note">OpenSearch + DB with CompletableFuture</span>
+    │       ├── ItemPropertyRepositoryImpl.java
+    │       └── CustomerRepositoryImpl.java
+    │
+    ├── <span class="d">service/</span>
+    │   ├── InvoiceService.java               <span class="note">orchestrator: enrich → build → pool → transform</span>
+    │   ├── MmedService.java
+    │   └── VersionService.java
+    │
+    ├── <span class="d">controller/</span>
+    │   ├── InvoiceController.java            <span class="note">POST /v1/invoice (XML/SOAP)</span>
+    │   ├── MmedController.java               <span class="note">POST /api/v1/mmed/*</span>
+    │   └── VersionController.java            <span class="note">GET /api/v1/version</span>
+    │
+    ├── <span class="d">util/</span>
+    │   ├── JAXBUtil.java                     <span class="note">internal only: marshal CalculateRequest → RPSD XML; unmarshal engine RPSD response</span>
+    │   ├── ResponseMapper.java               <span class="note">maps internal Rpsd model → CalculateResponse (JSON DTO)</span>
+    │   └── RM3Util.java                      <span class="note">roundToNearestDecimal (SOAP envelope helpers removed)</span>
+    │
+    └── <span class="d">exception/</span>
+        ├── EngineTimeoutException.java       <span class="note">code 32</span>
+        ├── MmedException.java                <span class="note">codes 14, 15, 16</span>
+        ├── EngineInitException.java          <span class="note">code 41</span>
+        ├── CalculateInvoiceException.java    <span class="note">general business error</span>
+        └── GlobalExceptionHandler.java       <span class="note">@RestControllerAdvice</span>
+</div>
+
+<!-- ─────────────────────────────────────────────────── 10. LAYER DESIGN -->
+<h2 id="layer-design">10. Layer-by-Layer Design</h2>
+
+<h3>10.1 Configuration Layer</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-blue">config/</span>
+    <span class="class-chip">AppProperties</span>
+    <span class="class-chip">EnginePoolConfig</span>
+    <span class="class-chip">OpenSearchConfig</span>
+    <span class="class-chip">AsyncConfig</span>
+    <span class="class-chip">SecurityConfig</span>
+  </div>
+  <div class="layer-body">
+    <p><strong>AppProperties</strong> — <code>@ConfigurationProperties("rm3")</code> binds all engine, MMED, security, and S3 settings from <code>application.yml</code>.</p>
+    <p><strong>EnginePoolConfig</strong> — <code>@Bean</code> that runs at startup: downloads MMED from S3, loads MmedType, creates N EngineWrapper instances with <code>checkMmed()</code>, populates EnginePool queue.</p>
+    <p><strong>OpenSearchConfig</strong> — creates <code>RestHighLevelClient</code> from URI/credentials (same pattern as core service).</p>
+    <p><strong>AsyncConfig</strong> — configures async thread pool for OpenSearch queries (parallel price + item property lookups).</p>
+  </div>
+</div>
+
+<h3>10.2 Security Layer</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-orange">security/</span>
+    <span class="class-chip">ApiKeyFilter</span>
+  </div>
+  <div class="layer-body">
+    <pre><span class="comment">// Paths skipped: /actuator/**, /swagger-ui/**, /v3/api-docs/**</span>
+<span class="comment">// Checked: X-API-Key header == rm3.security.api-key property</span>
+<span class="comment">// On fail: 401 + { success:false, errorCode:401, errorMessage:"Unauthorized" }</span></pre>
+    <div class="callout callout-info">
+      <strong>Note on /v1/invoice</strong>
+      The primary invoice endpoint should also require X-API-Key. Existing callers (api-service) must be updated to pass the key. This is the only breaking change from the current no-auth setup.
+    </div>
+  </div>
+</div>
+
+<h3>10.3 Enrichment Layer</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-green">enrichment/</span>
+    <span class="class-chip">PriceDataService</span>
+    <span class="class-chip">ItemPropertyService</span>
+    <span class="class-chip">CustomerDataService</span>
+  </div>
+  <div class="layer-body">
+    <p>These three services replace the inline data-fetching code in <code>ServletService.calculateInvoice()</code>. Each implements the OpenSearch-first, DB-fallback pattern with proper <code>CompletableFuture</code> composition.</p>
+    <p><strong>Key design decision:</strong> PriceDataService and ItemPropertyService are called in parallel via <code>CompletableFuture.supplyAsync()</code>. CustomerDataService is called sequentially only when <code>cus != 0</code>, to avoid unnecessary DB lookups for anonymous customers.</p>
+  </div>
+</div>
+
+<h3>10.4 Service Layer — InvoiceService</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-purple">service/</span>
+    <span class="class-chip">PromotionService</span>
+  </div>
+  <div class="layer-body">
+    <p>The central orchestrator. Replaces <code>ServletService.calculateInvoice()</code> from the core service. Key responsibilities:</p>
+    <ul style="padding-left:18px;margin:8px 0">
+      <li>Accept <code>CalculateRequest</code> JSON DTO (not SOAP XML)</li>
+      <li>Coordinate parallel data enrichment (price + item props + customer)</li>
+      <li>Track <code>skippedSkus</code> explicitly (SKUs with no price found)</li>
+      <li>Build RPSD XML internally via JAXBUtil (engine's internal format, never exposed)</li>
+      <li>Call <code>enginePool.execute()</code> — direct in-JVM call, no HTTP</li>
+      <li>Map engine response via <code>ResponseMapper</code> → <code>CalculateResponse</code> JSON DTO</li>
+    </ul>
+    <div class="callout callout-warn">
+      <strong>RestTemplate &amp; SOAP are removed entirely</strong>
+      No <code>callTomcat2Async()</code>, no <code>JAXBUtil.parseRequest(soapXml)</code>, no <code>RM3Util.wrapWithSoapEnvelope()</code> in the external path. JAXB is used only for the internal RPSD engine protocol.
+    </div>
+  </div>
+</div>
+
+<h3>10.5 Controller Layer</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-blue">controller/</span>
+    <span class="class-chip">PromotionController</span>
+    <span class="class-chip">MmedController</span>
+    <span class="class-chip">VersionController</span>
+  </div>
+  <div class="layer-body">
+    <table>
+      <tr><th>Controller</th><th>Endpoint</th><th>Content-Type</th><th>Notes</th></tr>
+      <tr><td>PromotionController</td><td>POST /api/v1/promotions/calculate</td><td>application/json ↔ application/json</td><td>Primary endpoint — replaces SOAP /v1/invoice</td></tr>
+      <tr><td>MmedController</td><td>POST /api/v1/mmed/*</td><td>application/json</td><td>upload, reload, upload-reload</td></tr>
+      <tr><td>VersionController</td><td>GET /api/v1/version</td><td>application/json</td><td>Returns servlet + engine versions</td></tr>
+    </table>
+    <div class="callout callout-warn">
+      <strong>Caller must be updated</strong>
+      The calling service (<code>api-service</code>) currently sends SOAP XML to core-service at <code>/v1/invoice</code>. It must be updated to send JSON to <code>/api/v1/promotions/calculate</code> and add the <code>X-API-Key</code> header. Coordinate this cutover before decommissioning the old services.
+    </div>
+  </div>
+</div>
+
+<h3>10.6 Exception Handler</h3>
+
+<div class="layer-block">
+  <div class="layer-header">
+    <span class="badge badge-red">exception/</span>
+    <span class="class-chip">GlobalExceptionHandler</span>
+  </div>
+  <div class="layer-body">
+    <table>
+      <tr><th>Exception</th><th>Error Code</th><th>HTTP</th><th>Message</th></tr>
+      <tr><td>EngineTimeoutException</td><td>32</td><td>503</td><td>Engine wait timeout after 3000ms</td></tr>
+      <tr><td>MmedException (MMED invalid)</td><td>14</td><td>422</td><td>mmed.xml file incorrect</td></tr>
+      <tr><td>MmedException (write fail)</td><td>15</td><td>500</td><td>Writing mmed file failed</td></tr>
+      <tr><td>MmedException (too short)</td><td>16</td><td>400</td><td>Not enough data for xml file</td></tr>
+      <tr><td>EngineInitException</td><td>41</td><td>500</td><td>Engine init failed</td></tr>
+      <tr><td>CalculateInvoiceException</td><td>—</td><td>400</td><td>Business validation error</td></tr>
+      <tr><td>Unauthorized (filter)</td><td>401</td><td>401</td><td>Unauthorized</td></tr>
+      <tr><td>Exception (catch-all)</td><td>99</td><td>500</td><td>Internal server error</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────── 11. CONFIG -->
+<h2 id="config">11. Configuration (application.yml)</h2>
+
+<pre>
+server:
+  port: 8080
+  servlet:
+    context-path: /promotionservice/calculateinvoicecore  <span class="comment"># match legacy path</span>
+
+spring:
+  application:
+    name: rm3-promotion-service
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+    driver-class-name: ${DATASOURCE_DRIVER}
+    hikari:
+      minimum-idle: ${DATASOURCE_MINIMUM_IDLE:2}
+      maximum-pool-size: ${DATASOURCE_MAXIMUM_POOL:10}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  elasticsearch:
+    uris: ${OPENSEARCH_URI}
+    username: ${OPENSEARCH_USERNAME}
+    password: ${OPENSEARCH_PASSWORD}
+
+rm3:
+  engine:
+    max-engines: ${RM3_MAX_ENGINES:20}
+    acquire-timeout-ms: ${RM3_ACQUIRE_TIMEOUT_MS:3000}
+    debug-level: ${RM3_DEBUG_LEVEL:0}
+    nbr-decimals: ${RM3_NBR_DECIMALS:2}
+  mmed:
+    local-path: ${RM3_MMED_PATH:/servlet/init/mmed.xml}
+    extra-mmed-paths: []
+    s3-bucket: ${S3_BUCKET:}
+    s3-key: MMED_FILE_FROM_BUILD_SERVER/mmed.xml
+  security:
+    api-key: ${RM3_API_KEY:change-me}
+    header-name: X-API-Key
+  s3:
+    region: AP_SOUTHEAST_1
+  opensearch:
+    price-index: ${OPENSEARCH_INDEX}
+    product-index: ${OPENSEARCH_PRODUCT_INDEX}
+    customer-index: ${OPENSEARCH_CUSTOMER_INDEX}
+    sentinel-store-id: "999999"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.capgemini.rm3: ${LOGGING_LEVEL:INFO}
+</pre>
+
+<!-- ─────────────────────────────────────────────────── 12. DEPENDENCIES -->
+<h2 id="dependencies">12. Dependencies (pom.xml)</h2>
+
+<table>
+  <tr><th>Dependency</th><th>Purpose</th><th>Source</th></tr>
+  <tr><td>spring-boot-starter-parent 3.2.2</td><td>BOM + parent</td><td>Maven Central</td></tr>
+  <tr><td>spring-boot-starter-web</td><td>REST + embedded Tomcat</td><td>BOM</td></tr>
+  <tr><td>spring-boot-starter-actuator</td><td>/actuator/health</td><td>BOM</td></tr>
+  <tr><td>spring-boot-starter-validation</td><td>Bean validation</td><td>BOM</td></tr>
+  <tr><td>spring-boot-starter-data-jpa</td><td>Oracle JPA repositories</td><td>BOM</td></tr>
+  <tr><td>spring-boot-starter-web-services</td><td>SOAP/XML support</td><td>BOM</td></tr>
+  <tr><td>spring-boot-starter-cache</td><td>Caching infrastructure</td><td>BOM</td></tr>
+  <tr><td>jakarta.xml.bind-api 3.0.1</td><td>JAXB API (Java 17 replacement)</td><td>Maven Central</td></tr>
+  <tr><td>jaxb-runtime (glassfish)</td><td>JAXB runtime impl</td><td>Maven Central</td></tr>
+  <tr><td>springdoc-openapi-starter-webmvc-ui 2.3.0</td><td>Swagger UI</td><td>Maven Central</td></tr>
+  <tr><td>software.amazon.awssdk:s3 2.26.23</td><td>S3 MMED download</td><td>Maven Central</td></tr>
+  <tr><td>opensearch-rest-high-level-client 2.12.0</td><td>OpenSearch queries</td><td>Maven Central</td></tr>
+  <tr><td>com.oracle.database.jdbc:ojdbc8 19.8.0.0</td><td>Oracle JDBC</td><td>Maven Central</td></tr>
+  <tr><td>jackson-dataformat-xml</td><td>XML serialization</td><td>BOM</td></tr>
+  <tr><td>lombok</td><td>Boilerplate reduction</td><td>BOM</td></tr>
+  <tr><td>engine:RM3E:3.5.0 (system scope)</td><td>Proprietary engine JAR</td><td><code>lib/RM3E-3.5.0.jar</code></td></tr>
+</table>
+
+<div class="callout callout-warn">
+  <strong>Spring Boot version upgrade</strong>
+  The core service uses Spring Boot 3.1.8. The new service targets 3.2.2. Review the <a href="https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.2-Release-Notes" style="color:var(--accent)">3.2 release notes</a> for breaking changes, particularly around RestHighLevelClient (deprecated in favour of OpenSearch Java client).
+</div>
+
+<!-- ─────────────────────────────────────────────────── 13. ENDPOINTS -->
+<h2 id="endpoints">13. Complete API Endpoints</h2>
+
+<div class="callout callout-info">
+  <strong>All endpoints use JSON</strong>
+  No SOAP, no XML in the external API. RPSD XML is an implementation detail used only inside the service to communicate with the RM3E engine JAR.
+</div>
+
+<table>
+  <tr><th>Method</th><th>Path</th><th>Auth</th><th>Request</th><th>Response</th><th>Legacy mapped from</th></tr>
+  <tr>
+    <td><span class="badge badge-green">POST</span></td>
+    <td>/api/v1/promotions/calculate</td>
+    <td>X-API-Key</td>
+    <td>JSON: storeId, customerId, items[]</td>
+    <td>JSON: summary, items[], promotions[], skippedSkus[]</td>
+    <td>core-service /v1/invoice (SOAP)</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">POST</span></td>
+    <td>/api/v1/mmed/upload</td>
+    <td>X-API-Key</td>
+    <td><code>{"mmedXml":"..."}</code></td>
+    <td><code>{"success":true,"message":"...","uploadedAt":"..."}</code></td>
+    <td>engine-service ?action=upload_mmed</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">POST</span></td>
+    <td>/api/v1/mmed/reload</td>
+    <td>X-API-Key</td>
+    <td>empty body</td>
+    <td><code>{"success":true,"message":"MMED reloaded","reloadedAt":"..."}</code></td>
+    <td>engine-service ?action=reload_mmed</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-green">POST</span></td>
+    <td>/api/v1/mmed/upload-reload</td>
+    <td>X-API-Key</td>
+    <td><code>{"mmedXml":"..."}</code></td>
+    <td><code>{"success":true,"message":"...","reloadedAt":"..."}</code></td>
+    <td>engine-service ?action=upload_reload_mmed</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">GET</span></td>
+    <td>/api/v1/version</td>
+    <td>X-API-Key</td>
+    <td>—</td>
+    <td><code>{"servletVersion":"1.0.0","engineVersion":"3.5.0","queriedAt":"..."}</code></td>
+    <td>engine-service ?action=version</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">GET</span></td>
+    <td>/actuator/health</td>
+    <td>none</td>
+    <td>—</td>
+    <td><code>{"status":"UP"}</code></td>
+    <td>engine-service /health-check</td>
+  </tr>
+  <tr>
+    <td><span class="badge badge-blue">GET</span></td>
+    <td>/swagger-ui.html</td>
+    <td>none</td>
+    <td>—</td>
+    <td>Swagger UI (interactive)</td>
+    <td>—</td>
+  </tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 14. IMPL ORDER -->
+<h2 id="impl-order">14. Implementation Order</h2>
+
+<div class="step-list">
+
+  <div class="step-item">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h4>Project Scaffold</h4>
+      <p>Create <code>/Users/dsingh/softwares/Queries/rm3-promotion-service/</code></p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>pom.xml</code> — all dependencies, system-scope RM3E JAR</li>
+        <li><code>lib/RM3E-3.5.0.jar</code> — copy from rm3-engine-service/lib</li>
+        <li><code>Rm3PromotionServiceApplication.java</code> — @SpringBootApplication</li>
+        <li><code>src/main/resources/application.yml</code> — full config skeleton</li>
+        <li><code>src/main/resources/application-local.yml</code> — local overrides</li>
+        <li>Verify: <code>mvn spring-boot:run</code> starts (no engine yet, expect fail at pool init)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h4>Exceptions</h4>
+      <p>Create all exception classes first — needed by everything else.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>EngineTimeoutException</code> (code 32)</li>
+        <li><code>MmedException</code> (codes 14, 15, 16)</li>
+        <li><code>EngineInitException</code> (code 41)</li>
+        <li><code>CalculateInvoiceException</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h4>Models — Copy &amp; Reorganise</h4>
+      <p>Port JAXB models from core service into new package structure.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>model/request/</code> — InvoiceRequest, InvoiceRequestLineType (from calculateinvoicewsdl)</li>
+        <li><code>model/response/</code> — Invoice (from calculateinvoicewsdl)</li>
+        <li><code>model/rpsd/</code> — all tomcat2wsdl classes (Rpsd, Invoice, InvoiceLineType, etc.)</li>
+        <li><code>model/enrichment/</code> — PriceRecord, Product, SourceES, CustomerList</li>
+        <li>Update all package references</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <h4>JPA Entities &amp; Repositories</h4>
+      <p>Port Oracle JPA layer from core service.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>entity/</code> — ItemStoreValue, ItemPropertyValues, CustomerPropertyValue, CustomerData</li>
+        <li><code>repository/</code> — all JpaRepository interfaces</li>
+        <li>Verify Oracle connection with a simple <code>@SpringBootTest</code> context load</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <h4>Configuration &amp; AppProperties</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>AppProperties</code> — @ConfigurationProperties binding</li>
+        <li><code>OpenSearchConfig</code> — RestHighLevelClient bean</li>
+        <li><code>AsyncConfig</code> — thread pool for CompletableFuture</li>
+        <li>Verify: context loads with mocked env vars</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <h4>Engine Layer</h4>
+      <p>The most critical piece — implement the safe engine pool.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>EngineWrapper</code> — wraps RM3S, simulate(), reloadMmed()</li>
+        <li><code>EnginePool</code> — ArrayBlockingQueue, ReadWriteLock, execute(), reloadAll()</li>
+        <li><code>S3MmedDownloader</code> — AWS SDK v2 download</li>
+        <li><code>EnginePoolConfig</code> — @Bean startup: S3 download → load MMED → create pool</li>
+        <li><strong>Test:</strong> EnginePoolTest — concurrent execute, timeout (32), reload while active, exception safety (engine must return to pool)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">7</div>
+    <div class="step-body">
+      <h4>MMED Service</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>MmedService</code> — uploadMmed (validate length → write file → checkMmed), reloadMmed (S3 → RM3Interface → EnginePool.reloadAll)</li>
+        <li>Port exact logic from legacy <code>RM3PromotionServlet.uploadMmed()</code> and <code>reloadMmed()</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">8</div>
+    <div class="step-body">
+      <h4>Data Enrichment Layer</h4>
+      <p>Port OpenSearch repository implementations from core service.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>PriceDataService</code> — port PriceRepositoryImpl (store → 999999 → DB fallback)</li>
+        <li><code>ItemPropertyService</code> — port ItemPropertyRepositoryImpl (OpenSearch → DB)</li>
+        <li><code>CustomerDataService</code> — port CustomerRepositoryImpl (OpenSearch → DB)</li>
+        <li><strong>Test:</strong> mock OpenSearch client; verify fallback paths; verify sentinel store logic</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">9</div>
+    <div class="step-body">
+      <h4>Utilities</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>JAXBUtil</code> — port from core service (parseRequest, marshal, unmarshalEnvelope2, marshalResponse, makeRequestTomcat2Ready)</li>
+        <li><code>RM3Util</code> — port roundToNearestDecimal, wrapWithSoapEnvelope, convertLongToInt</li>
+        <li><code>Transformer</code> — port exactly from core service (NTot, DTot, ITot, SDi, CDi, SPr, Res, Pre logic)</li>
+        <li><strong>Test:</strong> TransformerTest — verify discount totals, promotion type split, rounding</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">10</div>
+    <div class="step-body">
+      <h4>InvoiceService (Orchestrator)</h4>
+      <p>The merged version of <code>ServletService.calculateInvoice()</code> — now calls engine pool directly.</p>
+      <ul style="padding-left:18px;font-size:12px">
+        <li>Parallel: <code>CompletableFuture</code> for price + item props</li>
+        <li>Sequential: customer props (only if cus != 0)</li>
+        <li>Build <code>ServletRequest</code> via JAXB (inject mandatory props 888, 887)</li>
+        <li>Marshal to RPSD XML string</li>
+        <li>Call <code>enginePool.execute(engine → engine.simulate(rpsdXml))</code></li>
+        <li>Unmarshal response → Transformer → SOAP wrap</li>
+        <li><strong>Test:</strong> InvoiceServiceTest — mock pool, mock enrichment services; verify article drop logic; verify SOAP wrapping</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">11</div>
+    <div class="step-body">
+      <h4>Controllers</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li><code>InvoiceController</code> — POST /v1/invoice (text/xml in/out)</li>
+        <li><code>MmedController</code> — upload, reload, upload-reload</li>
+        <li><code>VersionController</code> — GET /api/v1/version (JSON)</li>
+        <li><strong>Test:</strong> @WebMvcTest slices for each controller</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">12</div>
+    <div class="step-body">
+      <h4>Security — ApiKeyFilter</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li>Implement <code>OncePerRequestFilter</code></li>
+        <li>Skip: <code>/actuator/**</code>, <code>/swagger-ui/**</code>, <code>/v3/api-docs/**</code></li>
+        <li>Verify header, return 401 JSON on mismatch</li>
+        <li>Register in <code>SecurityConfig</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">13</div>
+    <div class="step-body">
+      <h4>GlobalExceptionHandler</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li>@RestControllerAdvice for all exception types</li>
+        <li>Return consistent <code>ErrorResponse{success, errorCode, errorMessage, timestamp}</code></li>
+        <li>Map engine error codes to HTTP status codes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">14</div>
+    <div class="step-body">
+      <h4>Integration Tests</h4>
+      <ul style="padding-left:18px;font-size:12px">
+        <li>InvoiceControllerIntegrationTest — @SpringBootTest with mocked engine + OpenSearch</li>
+        <li>Verify full SOAP round-trip: request parse → enrich → engine → transform → SOAP out</li>
+        <li>Verify error scenarios: bad SOAP, engine timeout, missing articles</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-item">
+    <div class="step-num">15</div>
+    <div class="step-body">
+      <h4>Dockerfile</h4>
+      <pre>FROM eclipse-temurin:17-jre-alpine AS runtime
+WORKDIR /app
+COPY target/rm3-promotion-service-*.jar app.jar
+COPY lib/RM3E-3.5.0.jar /app/lib/RM3E-3.5.0.jar
+RUN mkdir -p /servlet/init
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</pre>
+      <p style="font-size:12px">Note: the engine JAR must be available at runtime — include it in the image or mount via volume.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─────────────────────────────────────────────────── 15. MIGRATION -->
+<h2 id="migration">15. Migration Strategy</h2>
+
+<h3>15.1 Phased Deployment</h3>
+
+<table>
+  <tr><th>Phase</th><th>Action</th><th>Risk</th></tr>
+  <tr>
+    <td><strong>Phase 1</strong><br>Dev / UAT</td>
+    <td>Deploy rm3-promotion-service alongside both existing services. Run all three. Point a small % of traffic to new service via shadow routing flag.</td>
+    <td class="risk-low">LOW — no client impact</td>
+  </tr>
+  <tr>
+    <td><strong>Phase 2</strong><br>Validation</td>
+    <td>Compare responses between core service and rm3-promotion-service for identical requests. Verify NTot, DTot, ITot values match. Validate promotion Res[] structure.</td>
+    <td class="risk-low">LOW — no client impact</td>
+  </tr>
+  <tr>
+    <td><strong>Phase 3</strong><br>Cutover</td>
+    <td>Update DNS / load balancer to route /v1/invoice to new service. Keep old services running for quick rollback. Add X-API-Key to calling service (api-service) first.</td>
+    <td class="risk-med">MEDIUM — requires api-service update</td>
+  </tr>
+  <tr>
+    <td><strong>Phase 4</strong><br>Cleanup</td>
+    <td>Decommission rm3-engine-service and rm3-calculate-invoice-core-service after 1-2 weeks stability period.</td>
+    <td class="risk-low">LOW — both services idle</td>
+  </tr>
+</table>
+
+<h3>15.2 Environment Variables — New Service vs Old</h3>
+
+<table class="env-table">
+  <tr><th>New Variable</th><th>Old Service</th><th>Old Variable</th></tr>
+  <tr><td>DATASOURCE_URL</td><td>core</td><td>DATASOURCE_URL</td></tr>
+  <tr><td>DATASOURCE_USERNAME</td><td>core</td><td>DATASOURCE_USERNAME</td></tr>
+  <tr><td>DATASOURCE_PASSWORD</td><td>core</td><td>DATASOURCE_PASSWORD</td></tr>
+  <tr><td>OPENSEARCH_URI</td><td>core</td><td>OPENSEARCH_URI</td></tr>
+  <tr><td>OPENSEARCH_USERNAME</td><td>core</td><td>OPENSEARCH_USERNAME</td></tr>
+  <tr><td>OPENSEARCH_PASSWORD</td><td>core</td><td>OPENSEARCH_PASSWORD</td></tr>
+  <tr><td>OPENSEARCH_INDEX</td><td>core</td><td>OPENSEARCH_INDEX</td></tr>
+  <tr><td>OPENSEARCH_PRODUCT_INDEX</td><td>core</td><td>OPENSEARCH_PRODUCT_INDEX</td></tr>
+  <tr><td>OPENSEARCH_CUSTOMER_INDEX</td><td>core</td><td>OPENSEARCH_CUSTOMER_INDEX</td></tr>
+  <tr><td>S3_BUCKET</td><td>engine</td><td>S3_BUCKET</td></tr>
+  <tr><td>RM3_API_KEY</td><td>—</td><td><em>NEW — must create</em></td></tr>
+  <tr><td>RM3_MAX_ENGINES</td><td>engine</td><td>web.xml maxEngines</td></tr>
+  <tr><td>RM3_ENGINE_ENV</td><td>engine</td><td>RM3_ENGINE_ENV</td></tr>
+  <tr><td>DATASOURCE_MINIMUM_IDLE</td><td>core</td><td>DATASOURCE_MINIMUM_IDLE</td></tr>
+  <tr><td>DATASOURCE_MAXIMUM_POOL</td><td>core</td><td>DATASOURCE_MAXIMUM_POOL</td></tr>
+  <tr><td><em>SERVLET2_URL</em></td><td>core</td><td><span style="color:var(--accent4)">REMOVED — no longer needed</span></td></tr>
+  <tr><td><em>SERVLET2_CONNECTION_TIMEOUT</em></td><td>core</td><td><span style="color:var(--accent4)">REMOVED — no HTTP call</span></td></tr>
+  <tr><td><em>SERVLET2_READ_TIMEOUT</em></td><td>core</td><td><span style="color:var(--accent4)">REMOVED — no HTTP call</span></td></tr>
+</table>
+
+<!-- ─────────────────────────────────────────────────── 16. CHECKLIST -->
+<h2 id="checklist">16. Verification Checklist</h2>
+
+<h3>Engine Pool</h3>
+<ul class="checklist">
+  <li>20 concurrent simulate calls complete successfully (no engine leaks)</li>
+  <li>Exception thrown inside simulate still returns engine to pool</li>
+  <li>21st concurrent call returns error code 32 after ~3 seconds (not instantly)</li>
+  <li>MMED reload while 10 engines busy: reload waits, then succeeds</li>
+  <li>After reload, new rules are applied on next simulate</li>
+</ul>
+
+<h3>Invoice Calculation</h3>
+<ul class="checklist">
+  <li>Valid JSON request with known SKUs → HTTP 200 + correct JSON response</li>
+  <li>Response is <code>application/json</code> — no XML in response body</li>
+  <li>SKU not in price catalogue → listed in <code>skippedSkus[]</code>, not silently dropped</li>
+  <li>Article in price map but not in OpenSearch → DB fallback used</li>
+  <li>Store not in OpenSearch → sentinel store 999999 used for price</li>
+  <li>NTot = sum of all line amounts (rounded to 3dp)</li>
+  <li>DTot = sum of all promotion discounts (rounded to 3dp)</li>
+  <li>ITot = NTot - DTot (rounded to 3dp)</li>
+  <li>SDi and CDi correctly split by promotionType &lt; 10 / ≥ 10</li>
+  <li>SPr = NAm - SDi - CDi per line</li>
+  <li>SPI set for standard promotions; CPI set for coupons</li>
+  <li>Pre[] populated when extraResultInfo key 103 present</li>
+</ul>
+
+<h3>Security</h3>
+<ul class="checklist">
+  <li>POST /v1/invoice without X-API-Key → HTTP 401</li>
+  <li>POST /v1/invoice with wrong key → HTTP 401</li>
+  <li>POST /v1/invoice with correct key → HTTP 200</li>
+  <li>GET /actuator/health without key → HTTP 200 <code>{"status":"UP"}</code></li>
+  <li>GET /swagger-ui.html without key → HTTP 200</li>
+</ul>
+
+<h3>MMED Operations</h3>
+<ul class="checklist">
+  <li>POST /api/v1/mmed/upload with XML &lt; 200 bytes → error code 16</li>
+  <li>POST /api/v1/mmed/upload with invalid MMED → error code 14</li>
+  <li>POST /api/v1/mmed/upload with valid MMED → success, "not active yet"</li>
+  <li>POST /api/v1/mmed/reload → downloads from S3, reloads pool, returns timestamp</li>
+  <li>Requests during reload queue and succeed after reload completes</li>
+</ul>
+
+<h3>SOAP Compatibility</h3>
+<ul class="checklist">
+  <li>Request with <code>&lt;x:Envelope&gt;</code> prefix is parsed correctly</li>
+  <li>Request with <code>&lt;SOAP-ENV:Envelope&gt;</code> prefix is parsed correctly</li>
+  <li>Response includes <code>xmlns="http://www.capgemini.com/rm3/pricing4.0"</code> on Invoice tag</li>
+  <li>Response includes correct <code>soapenv:encodingStyle</code> attribute</li>
+</ul>
+
+<!-- ─────────────────────────────────────────────────── 17. RISKS -->
+<h2 id="risks">17. Risks &amp; Key Decisions</h2>
+
+<table>
+  <tr><th>Risk / Decision</th><th>Severity</th><th>Mitigation</th></tr>
+  <tr>
+    <td>RM3E JAR must be available in final Docker image</td>
+    <td class="risk-med">MEDIUM</td>
+    <td>Copy <code>lib/RM3E-3.5.0.jar</code> into image in Dockerfile. Do not rely on Maven repo for deployment.</td>
+  </tr>
+  <tr>
+    <td>RestHighLevelClient is deprecated in OpenSearch client &gt;2.x</td>
+    <td class="risk-med">MEDIUM</td>
+    <td>Keep RestHighLevelClient for now (same as core service) — plan migration to OpenSearch Java client in a follow-up.</td>
+  </tr>
+  <tr>
+    <td>Articles silently dropped if price not found — callers may not notice</td>
+    <td class="risk-med">MEDIUM</td>
+    <td>Add a log.warn per dropped article with traceId. Consider adding a <code>droppedArticles</code> field to response in a future version.</td>
+  </tr>
+  <tr>
+    <td>MMED reload causes brief unavailability while engines are drained</td>
+    <td class="risk-low">LOW</td>
+    <td>ReadWriteLock ensures new requests queue rather than fail. Reload typically completes in &lt;2s.</td>
+  </tr>
+  <tr>
+    <td>Context path change (/promotionservice/calculateinvoicecore) affects clients</td>
+    <td class="risk-high">HIGH</td>
+    <td>Configure new service with same context-path as core service in server.servlet.context-path. No client change needed.</td>
+  </tr>
+  <tr>
+    <td>X-API-Key is a new requirement — callers must be updated</td>
+    <td class="risk-high">HIGH</td>
+    <td>Coordinate with api-service team to add header before cutover. Alternatively, make auth opt-out initially.</td>
+  </tr>
+  <tr>
+    <td>Shadow engine feature in core service not ported</td>
+    <td class="risk-low">LOW</td>
+    <td>Explicitly out of scope. Shadow routing can be re-added as a separate feature flag in Phase 2 if needed.</td>
+  </tr>
+  <tr>
+    <td>Engine pool size (maxEngines=20) shared with all request types</td>
+    <td class="risk-low">LOW</td>
+    <td>MMED operations (upload/reload) are infrequent. Engine pool for calculate has exclusive access via ReadLock.</td>
+  </tr>
+  <tr>
+    <td>RPSD XML builder correctness — engine is a black box</td>
+    <td class="risk-med">MEDIUM</td>
+    <td>Port JAXB models exactly from core service. Validate by replaying real requests against both old and new service and diffing responses.</td>
+  </tr>
+</table>
+
+<hr class="section-sep">
+
+<div class="callout callout-success">
+  <strong>Ready to Implement</strong>
+  All architectural decisions are captured above. The implementation order in Section 14 follows a strict dependency chain: exceptions → models → entities → config → engine → enrichment → service → controller → security. Start from Step 1 and follow the order to avoid circular dependency issues during development.
+</div>
+
+<p style="color:var(--text-dim);font-size:12px;margin-top:32px;text-align:center">
+  rm3-promotion-service Merged Architecture Blueprint &nbsp;·&nbsp; Generated Feb 2026 &nbsp;·&nbsp;
+  Sources: rm3-engine-service (legacy), rm3-calculate-invoice-core-service (GitLab)
+</p>
+
+</main>
+
+<script>
+  // Highlight active TOC item on scroll
+  const sections = document.querySelectorAll('h2[id]');
+  const links = document.querySelectorAll('.toc-sidebar a[href^="#"]');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector('.toc-sidebar a[href="#' + e.target.id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
+
+</body>
+</html>
